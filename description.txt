@@ -1,0 +1,22 @@
+Obama Camera is a mod that allows you to chance how camera works
+
+Feature :
+- Screen shake on hurt
+- Screen shake on kill
+- Camera follow on boss and player
+- Camera lock on boss
+- Death cam
+- Smooth Camera
+
+all of the feature here is configurable :)
+
+Note : its problaby not the best idea to use this mod and overhaul cuz it may conflict each other :/
+
+[ Changelog ]
+
+v.0.2
+- added icon
+- added Screen shake on kill
+
+v.0.1
+- initial release
