@@ -21,6 +21,8 @@ using Terraria.GameInput;
 using Terraria.ModLoader.IO;
 using Terraria.Localization;
 using Terraria.Utilities;
+using System.Reflection;
+using MonoMod.RuntimeDetour.HookGen;
 
 namespace ObamaCamera
 {
@@ -37,26 +39,28 @@ namespace ObamaCamera
 		public int camerashake;
 
 		public override void OnHitAnything(float x, float y, Entity victim) {
-			if (!config.DOOM) {
-				return;
-			}
-			if (Vector2.Distance(new Vector2(x,y), player.Center) < 700) {
-				camerashake = config.ShakeInt;
-				if (victim is NPC target) {
-					if (target.life <= 0) {
-						camerashake = config.ShakeInt*2;
-					}
-				}
-				if (victim is Player asd) {
-					if (asd.statLife <= 0) {
-						camerashake = config.ShakeInt*2;
-					}
+			if (config.HitShake) {
+				if (camerashake < config.ShakeInt*2) {
+					camerashake += config.ShakeInt/2;
 				}
 			}
-
+		}
+		public override void OnHitNPCWithProj(Projectile proj, NPC target, int damage, float knockback, bool crit) {
+			if (config.KillShake) {
+				if (target.life <= 0) {
+					camerashake = config.ShakeInt*2;
+				}	
+			}
+		}
+		public override void OnHitNPC(Item item, NPC target, int damage, float knockback, bool crit) {
+			if (config.KillShake) {
+				if (target.life <= 0) {
+					camerashake = config.ShakeInt*2;
+				}	
+			}
 		}
 		public override void PostHurt(bool pvp, bool quiet, double damage, int hitDirection, bool crit) {
-			if (config.CameraShake) {
+			if (config.HurtShake) {
 				camerashake = config.ShakeInt;
 			}
 		}
@@ -64,17 +68,35 @@ namespace ObamaCamera
 			SourcePlayerIndex = damageSource.SourcePlayerIndex;
 			SourceNPCIndex = damageSource.SourceNPCIndex;
 			SourceProjectileIndex = damageSource.SourceProjectileIndex;
-			if (config.CameraShake) {
+			if (config.HurtShake) {
 				camerashake = config.ShakeInt*2;
 			}
 		}
-
-		public override void ModifyScreenPosition() {
-
+		public override void OnEnterWorld(Player player) {
+			if (config.SmoothCamera) {
+				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+			}
+		}
+		public override void OnRespawn(Player player) {
+			if (config.QuickRespawn) {
+				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+			}
+		}
+		public override void ProcessTriggers(TriggersSet triggersSet) {
+			if (ObamaCamera.BossLook.Current) {
+				QuickLook = true;
+			}
+		}
+		public bool QuickLook;
+		public void CameraMod() {
 			Vector2 centerScreen = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 
 			bool flag1 = true;
-			if (!player.dead && config.CameraFollow != "Player") {
+			string type = config.CameraFollow;
+			if (QuickLook) {
+				type = "Boss only";
+			}
+			if (!player.dead && (type != "Player")) {
 				int index = -1;
 				Vector2 targetCenter = player.Center;
 				for (int i = 0; i < Main.maxNPCs; i++) {
@@ -89,13 +111,20 @@ namespace ObamaCamera
 				}
 				if (index > -1) {
 					NPC npc = Main.npc[index];
-					if (config.CameraFollow == "Boss and Player") {
-						Main.screenPosition = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);
-						if (config.SmoothCamera){screenCache = Main.screenPosition;}
+					if (type == "Boss and Player") {
+						if (config.SmoothCamera){
+							Vector2 pos = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);
+							screenCache = Vector2.Lerp(screenCache,pos,0.1f);
+						}
+						else {
+							Main.screenPosition = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);
+						}
 						flag1 = false;
 					}
 					else {
-						if (config.SmoothCamera){screenCache = Vector2.Lerp(screenCache,npc.Center - centerScreen,0.05f);}
+						if (config.SmoothCamera){
+							screenCache = Vector2.Lerp(screenCache,npc.Center - centerScreen,0.05f);
+						}
 						else {Main.screenPosition = npc.Center - centerScreen;}
 						flag1 = false;
 					}
@@ -127,34 +156,65 @@ namespace ObamaCamera
 				if (flag1){screenCache = Vector2.Lerp(screenCache,player.Center - centerScreen,0.1f);}
 			}
 
-			if (config.CameraShake) {
+			if (config.HurtShake || config.KillShake || config.HitShake) {				
 				if (camerashake > 0)
 				{
 					Main.screenPosition += new Vector2(Main.rand.Next(-camerashake, camerashake + 1), Main.rand.Next(-camerashake, camerashake + 1));
 					camerashake -= 1;
 				}
 			}
+			QuickLook = false;
 		}
 	}
-	public class ObamaCamera : Mod{}
+	public class ObamaCamera : Mod
+	{
+		public static ModHotKey BossLook;
+		public override void Load() {
+
+			BossLook = RegisterHotKey("Quick Look At Boss", "V");
+
+			ObamaHooks.On_ModifyScreenPosition += DetourBoomBom;
+		}
+		public override void Unload() {
+
+			BossLook = null;
+
+			ObamaHooks.On_ModifyScreenPosition -= DetourBoomBom;
+		}
+		static void DetourBoomBom(ObamaHooks.orig_ModifyScreenPosition orig, Player player) {
+			if (!MyConfig.get.Override) {
+				player.GetModPlayer<Bebeq>().CameraMod();
+			}
+			orig(player);
+			if (MyConfig.get.Override) {
+				player.GetModPlayer<Bebeq>().CameraMod();
+			}
+		}
+		
+	}
 	[Label("Obama Camera")]
 	public class MyConfig : ModConfig
 	{
 		public override ConfigScope Mode => ConfigScope.ClientSide;
 		// public override ConfigScope Mode => ConfigScope.ServerSide;
-		//public static MyConfig get => ModContent.GetInstance<MyConfig>();
+		public static MyConfig get => ModContent.GetInstance<MyConfig>();
 
 		[Header("Screen Shake")]
 
 		[Label("Screen Shake On Hurt")]
-		[Tooltip("Shake the screen whenever the you get hurt")]
+		[Tooltip("Shake the screen whenever you get HURT")]
 		[DefaultValue(true)]
-		public bool CameraShake;
+		public bool HurtShake;
 
 		[Label("Screen Shake On Kill")]
-		[Tooltip("Shake the screen whenever the you hit n kill enemy")]
+		[Tooltip("Shake the screen whenever you KILL enemy")]
 		[DefaultValue(false)]
-		public bool DOOM;
+		public bool KillShake;
+
+		[Label("Screen Shake On Hit")]
+		[Tooltip("Shake the screen whenever you HIT enemy")]
+		[DefaultValue(false)]
+		public bool HitShake;
 
 		[Label("Screen Shake Intensity")]
 		[Tooltip("the intensity of the screenshake \n [default is 4]")]
@@ -183,6 +243,30 @@ namespace ObamaCamera
 		[DefaultValue("Boss and Player")]
 		public string CameraFollow;
 
+		[Label("Quick Camera Respawn")]
+		[Tooltip("immediately set the camera positon to player center on respawn \nonly works when 'Smooth camera' activated")]
+		[DefaultValue(false)]
+		public bool QuickRespawn;
+
+		[Label("Override Camera")]
+		[Tooltip("Override modify screen position")]
+		[DefaultValue(false)]
+		public bool Override;
+
 		//public override void OnChanged() {}
+	}
+	public static class ObamaHooks
+	{
+		public delegate void orig_ModifyScreenPosition(Player player);
+		public delegate void Hook_ModifyScreenPosition(orig_ModifyScreenPosition orig, Player player);
+
+		public static event Hook_ModifyScreenPosition On_ModifyScreenPosition {
+			add {
+				HookEndpointManager.Add<Hook_ModifyScreenPosition>(typeof(Mod).Assembly.GetType("Terraria.ModLoader.PlayerHooks").GetMethod("ModifyScreenPosition", BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic), value);
+			}
+			remove {
+				HookEndpointManager.Remove<Hook_ModifyScreenPosition>(typeof(Mod).Assembly.GetType("Terraria.ModLoader.PlayerHooks").GetMethod("ModifyScreenPosition", BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic), value);
+			}
+		}
 	}
 }
