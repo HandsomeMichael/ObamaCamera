@@ -1,4 +1,7 @@
 displayName = Obama Camera Overhaul
 homepage = https://github.com/HandsomeMichael/ObamaCamera
 author = Lasthue
-version = 0.3
+hideCode = false
+hideResources = false
+includeSource = true
+version = 0.5
