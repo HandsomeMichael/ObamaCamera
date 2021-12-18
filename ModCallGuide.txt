@@ -1,0 +1,65 @@
+==== Mod calls ===
+
+- How to get mod
+to get the mod you have to call GetMod in ModLoader and check if mod is not null 
+
+Example :
+Mod mod = ModLoader.GetMod("ObamaCamera");
+if (mod != null) { 
+    //do call here 
+}
+
+- Player
+player has 5 call method and 2 to 3 arguments
+
+mod.Call(new object[]{ player, string, int })
+
+argument 1 : the Player class
+
+argument 2 : string of "GetShake" , "SetShake" , "AddShake","GetBossLook","SetBossLook".
+
+"GetShake" = Get the camera shake
+"SetShake" = Set the camera shake 
+"AddShake" = Add the camera shake
+"GetBossLook" = Get the bool of Quick Look at boss Hotkey
+"SetBossLook" = Set the bool of Quick Look at boss Hotkey
+
+argument 3 : int for Set / Add Shake
+
+Example :
+
+Mod mod = ModLoader.GetMod("ObamaCamera");
+if (mod != null) { 
+
+    // get the local player camera shake
+    int shake = mod.Call(new object[]{ Main.LocalPlayer, "GetShake" })
+
+    // set the local player camera shake to 10
+    mod.Call(new object[]{ Main.LocalPlayer, "SetShake" ,10 })
+}
+
+
+- Config
+config has 2 call method and only 1 arguments
+
+mod.Call(new object{ string})
+
+argument 1 : string of
+
+"CameraFollow" = The camera type / follow
+"SmoothCamera" = Get the bool of smooth camera
+"Disable" = Disable the camera update
+"Enable" = Enable the camera update
+
+Example :
+
+Mod mod = ModLoader.GetMod("ObamaCamera");
+bool smooth = false;
+if (mod != null) { 
+    
+    //Get the bool of smooth camera
+    smooth = mod.Call(new object[]{ "CameraFollow"  })
+    
+    //disable the camera update
+    mod.Call(new object[]{ "Disable"})
+}
