@@ -1,18 +1,51 @@
 Obama Camera Overhaul is a mod that allows you to chance how camera works
 
+Inspired by my previous mod Obama Gaming and Terraria Overhaul.
+
 Feature :
-- Screen shake on hurt
-- Screen shake on kill enemy
-- Screen shake on hit enemy
-- Camera follow on boss and player
+
+[i:184] Camera stuff !!
+
+- Camera follow boss and player
+- Camera follow nearest enemy and player
+- Camera follow Mouse
 - Camera lock on boss
-- Death cam
 - Smooth Camera
+- Death cam
+
+[i:184] Bunch of Screen Shakes !!
+
+- Screen Shakes on getting hurt
+- Screen Shakes on kill and hit enemy
+- Screen Shakes on roar and explode
+- Screen Shakes on worm bosses
+- Screen Shakes on failed breaking tile
+
+[i:184] Hotkeys !!
+
 - Quick Look at Boss Hotkey
+- Quick Switch Camera Hotkey
 
 all of the feature here is configurable :)
 
+Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo
+
 [ Changelog ]
+
+v.0.5
+- Added Camera Follow Mouse ( like the Terraria Overhaul mod )
+- Added Camera Follow Enemy and Player
+- Added Screen Shake limit breaker
+- Added Screen Shake On Failed breaking tile
+
+v.0.4
+- Added Mod Calls
+- Added Focus when Moonlord Dying
+- Added Screen Shake On Roar
+- Added Screen Shake On Worm Boss
+- Added "Fun Stuff" where bad / funni feature got putted
+- Added Switch Camera Follow Hotkey
+- fixed camera wont follow vanilla worm boss
 
 v.0.3
 - Now works with other mod that modify camera position
