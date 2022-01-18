@@ -1,36 +1,54 @@
 Obama Camera Overhaul is a mod that allows you to chance how camera works
 
 Inspired by my previous mod Obama Gaming and Terraria Overhaul.
+works with other mod and sniper scope. 
 
 Feature :
 
 [i:184] Camera stuff !!
-
 - Camera follow boss and player
 - Camera follow nearest enemy and player
 - Camera follow Mouse
 - Camera lock on boss
 - Smooth Camera
+- Epic Boss Intro 
 - Death cam
-
 [i:184] Bunch of Screen Shakes !!
-
 - Screen Shakes on getting hurt
 - Screen Shakes on kill and hit enemy
 - Screen Shakes on roar and explode
 - Screen Shakes on worm bosses
 - Screen Shakes on failed breaking tile
-
 [i:184] Hotkeys !!
-
 - Quick Look at Boss Hotkey
-- Quick Switch Camera Hotkey
+- Quick Switch Camera Style Hotkey
+- Lock Camera Hotkey
 
 all of the feature here is configurable :)
 
-Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo
+Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it 
+
+to the github repo
 
 [ Changelog ]
+
+v.0.7 [ The Bigus Update ]
+- new icon 
+- added CJ Ah Shid , here we go again sound effect when boss spawned, configurable
+- added Proper Mod Call, and also Mod Call Guide
+- Screenshake intensity can now be set to 0, to disable it
+- Screenshake intensity can now goes up to 20
+- added Epic Boss Intro with Mod Call Support
+- added screenshake support for calamity roar / explode sound
+- Camera now wont follow boss if its too far away
+- fixed camera sound bug thing
+- fixed camera death cam wont center
+
+v.0.6
+- fixed camera death cam
+- fixed tile break with demonite and desert fossil
+- added some support on calamity and spirit
+- added camera lock , pretty much like what heros mod does
 
 v.0.5
 - Added Camera Follow Mouse ( like the Terraria Overhaul mod )
@@ -60,3 +78,4 @@ v.0.2
 
 v.0.1
 - initial release
+
