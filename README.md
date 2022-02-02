@@ -1,4 +1,6 @@
 # ObamaCamera
+![icon](https://user-images.githubusercontent.com/70310191/152098419-6ed5d02a-891a-48c1-ab37-1d2a6b71d8c2.png)
+
 ObamaCamera is a mod for tmodloader that overhaul camera
 
 Inspired by my previous mod Obama Gaming and Terraria Overhaul.
