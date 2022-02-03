@@ -12,6 +12,7 @@ Feature :
 - Camera lock on boss
 - Smooth Camera
 - Epic Boss Intro 
+- New Biome Discover Info
 - Death cam
 [i:184] Bunch of Screen Shakes !!
 - Screen Shakes on getting hurt
@@ -26,11 +27,25 @@ Feature :
 
 all of the feature here is configurable :)
 
-Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it 
-
-to the github repo
+Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it to the github repo
 
 [ Changelog ]
+
+v.0.7.5
+- added /title command
+- added text to combat text
+- added biome discover info ( supports calamity biome )
+- camera now will instantly go to player position when its too far away
+- fixed death cam follow unactive entities
+- fixed screen shake not working
+- fixed bug with segmented boss
+
+v.0.7.2
+- added calamity,split,thorium boss description
+- removed screenshake support for calamity roar / explode due to bug
+
+v.0.7.1 
+- fixed mod crash when reloading
 
 v.0.7 [ The Bigus Update ]
 - new icon 
@@ -78,4 +93,3 @@ v.0.2
 
 v.0.1
 - initial release
-
