@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -91,13 +92,29 @@ namespace ObamaCamera
 	public class Moonlord : GlobalNPC
 	{
 		public override bool InstancePerEntity => true;
+		static bool ThereIsOtherBoss(int index) {
+			for (int i = 0; i < Main.maxNPCs; i++)
+			{
+				if (i != index) {
+					NPC npc = Main.npc[i];
+					if (npc.active && 
+					(npc.boss || npc.type == NPCID.WallofFleshEye || npc.type == NPCID.EaterofWorldsHead) &&
+					 npc.type != NPCID.WallofFlesh && npc.realLife < 0 && npc.type != NPCID.MoonLordHand && 
+					 npc.type != NPCID.MoonLordHead) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
 		public override void PostAI(NPC npc) {
-			if (MyConfig.get.BossIntro &&
+			bool contain = false;
+			if (MyConfig.get.BossIntro && npc.realLife < 0 &&
 				npc.type != NPCID.MoonLordHand && npc.type != NPCID.MoonLordHead &&
 				!ObamaCamera.Moonlord && !ObamaCamera.bossEncounter.Contains(npc.type) && 
 				(npc.boss || npc.type == NPCID.WallofFleshEye || npc.type == NPCID.EaterofWorldsHead) 
-				&& npc.type != NPCID.WallofFlesh && ObamaCamera.NPCFocus == -1) {
-				bool save = true;
+				&& npc.type != NPCID.WallofFlesh && ObamaCamera.NPCFocus == -1 && !ThereIsOtherBoss(npc.whoAmI)) {
+
 				ObamaCamera.NPCFocus = npc.whoAmI;
 				string subtitle = "";
 				string name = npc.FullName;
@@ -123,11 +140,193 @@ namespace ObamaCamera
 				if (npc.type == NPCID.Retinazer || npc.type == NPCID.Spazmatism) {
 					name = "Twins";
 					subtitle = "The Duo Mechanical Eye";
-					ObamaCamera.bossEncounter.Add(NPCID.Retinazer);
-					ObamaCamera.bossEncounter.Add(NPCID.Spazmatism);
-					save = false;
+					if (npc.type == NPCID.Retinazer) {ObamaCamera.bossEncounter.Add(NPCID.Spazmatism);}
+					else {ObamaCamera.bossEncounter.Add(NPCID.Retinazer);}
 				}
-				if (save) {ObamaCamera.bossEncounter.Add(npc.type);}
+				bool save = true;
+				var meme = ModLoader.GetMod("CalamityMod");
+				if (meme != null) {
+					if (npc.type == meme.NPCType("DesertScourgeHead")) {
+						subtitle = "The Dried Gluttonous Husk";
+					}
+					if (npc.type == meme.NPCType("AquaticScourgeHead")) {
+						subtitle = "The Polluted And Hungry Worm";
+					}
+					if (npc.type == meme.NPCType("AstrumAureus")) {
+						subtitle = "The Titanic Infected Cyborg";
+					}
+					if (npc.type == meme.NPCType("AstrumDeusHeadSpectral")) {
+						subtitle = "The Star Infected Destroyer";
+					}
+					if (npc.type == meme.NPCType("BrimstoneElemental")) {
+						subtitle = "The Elemental Revenge";
+					}
+					if (npc.type == meme.NPCType("Birb")) {
+						subtitle = "The Twisted Scientific Failure";
+					}
+					if (npc.type == meme.NPCType("Calamitas")) {
+						subtitle = "The Brimstone Chaos";
+					}
+					if (npc.type == meme.NPCType("Yharon")) {
+						name = "Yharon";
+						subtitle = "The Jungle Dragon";
+					}
+					if (npc.type == meme.NPCType("SlimeGodCore")) {
+						subtitle = "The God of Slimes";
+					}
+					if (npc.type == meme.NPCType("Signus")) {
+						name = "Signus";
+						subtitle = "The Envoy of the Devourer";
+					}
+					if (npc.type == meme.NPCType("StormWeaverHead") || npc.type == meme.NPCType("StormWeaverHeadNaked")) {
+						ObamaCamera.bossEncounter.Add(meme.NPCType("StormWeaverHeadNaked"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("StormWeaverHead"));
+						subtitle = "The Long Storm";
+						save = false;
+					}
+					if (npc.type == meme.NPCType("Providence")) {
+						name = "Providence";
+						subtitle = "The Profaned Goddess";
+					}
+					if (npc.type == meme.NPCType("ProfanedGuardianBoss") || npc.type == meme.NPCType("ProfanedGuardianBoss2") || npc.type == meme.NPCType("ProfanedGuardianBoss3")) {
+						ObamaCamera.bossEncounter.Add(meme.NPCType("ProfanedGuardianBoss"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("ProfanedGuardianBoss2"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("ProfanedGuardianBoss3"));
+						subtitle = "The Guardian Of The Profaned Flame";
+						save = false;
+					}
+					if (npc.type == meme.NPCType("PlaguebringerGoliath")) {
+						subtitle = "The Amalgam of Infection";
+					}
+					if (npc.type == meme.NPCType("PerforatorHive")) {
+						subtitle = "The Abomination of Flesh";
+					}
+					if (npc.type == meme.NPCType("OldDuke")) {
+						subtitle = "The Mutant Terror of The Seas";
+					}
+					if (npc.type == meme.NPCType("Leviathan") && npc.type == meme.NPCType("Siren")) {
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Leviathan"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Siren"));
+						name = "Leviathan and Anahita";
+						subtitle = "The Voices of Sea Monster";
+						save = false;
+					}
+					if (npc.type == meme.NPCType("HiveMind")) {
+						subtitle = "The Clustered Corrupted Hive";
+					}
+					if (npc.type == meme.NPCType("Draedon") || npc.type == meme.NPCType("Artemis") 
+					|| npc.type == meme.NPCType("Apollo") || npc.type == meme.NPCType("ThanatosHead") 
+					|| npc.type == meme.NPCType("AresBody")) {
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Draedon"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Artemis"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Apollo"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("ThanatosHead"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("AresBody"));
+						name = "Exo Mechs";
+						subtitle = "The Fruits of Masterful Craftsmanship";
+						save = false;
+					}
+					if (npc.type == meme.NPCType("GreatSandShark")) {
+						subtitle = "The Top King Of Shark Sand";
+					}
+					if (npc.type == meme.NPCType("DevourerofGodsHead")) {
+						subtitle = "The Eater";
+					}
+					if (npc.type == meme.NPCType("Cryogen")) {
+						subtitle = "The Archmage's Prison";
+					}
+					if (npc.type == meme.NPCType("Polterghast")) {
+						subtitle = "The Soul Harvester";
+					}
+					if (npc.type == meme.NPCType("CeaselessVoid")) {
+						subtitle = "The Void";
+					}
+					if (npc.type == meme.NPCType("CrabulonIdle")) {
+						subtitle = "The Mushroom Crab";
+					}
+					if (npc.type == meme.NPCType("RavagerBody")) {
+						subtitle = "The Necromanced Golem";
+					}
+
+					if (npc.type == meme.NPCType("SupremeCalamitas")) {
+						subtitle = "The Brimstone Witch";
+					}
+				}
+				meme = ModLoader.GetMod("Split");
+				if (meme != null) {
+					if (npc.type == meme.NPCType("CommandoBoss")) {
+						subtitle = "The Invader Commando";
+					}
+					if (npc.type == meme.NPCType("Insurgent")) {
+						subtitle = "The Troller";
+					}
+					if (npc.type == meme.NPCType("Menace")) {
+						subtitle = "The Funny Cloud";
+					}
+					if (npc.type == meme.NPCType("Mirage")) {
+						subtitle = "The Epic Witch";
+					}
+					if (npc.type == meme.NPCType("OneShot")) {
+						subtitle = "The Aimboter";
+					}
+					if (npc.type == meme.NPCType("Paraffin")) {
+						subtitle = "The Candle Clown";
+					}
+					if (npc.type == meme.NPCType("Seth")) {
+						subtitle = "The Knight";
+					}
+					if (npc.type == meme.NPCType("TheSpirit")) {
+						subtitle = "The Woman";
+					}
+				}
+				meme = ModLoader.GetMod("ThoriumMod");
+				if (meme != null) {
+					if (npc.type == meme.NPCType("Viscount")) {
+						subtitle = "The Draculist Bat";
+					}
+					if (npc.type == meme.NPCType("FallenDeathBeholder")) {
+						name = "Coznix";
+						subtitle = "The Fallen Beholder";
+					}
+					if (npc.type == meme.NPCType("BoreanStrider")) {
+						subtitle = "The Snowy Strider";
+					}
+					if (npc.type == meme.NPCType("TheBuriedWarrior")) {
+						subtitle = "The Warrior of Greeks";
+					}
+					if (npc.type == meme.NPCType("Abyssion")) {
+						name = "Abyssion";
+						subtitle = "The Forgotten One";
+					}
+					if (npc.type == meme.NPCType("Lich")) {
+						subtitle = "The Life Taker";
+					}
+					if (npc.type == meme.NPCType("QueenJelly")) {
+						subtitle = "The Queen Of Evil Jelly";
+					}
+					if (npc.type == meme.NPCType("ThePrimeScouter")) {
+						subtitle = "The Invader Scouter";
+					}
+					if (npc.type == meme.NPCType("TheGrandThunderBirdv2")) {
+						subtitle = "The Bird Of Thunder";
+					}
+					if (npc.type == meme.NPCType("Lich")) {
+						subtitle = "The Draculist Bat";
+					}
+					if (npc.type == meme.NPCType("Aquaius") || npc.type == meme.NPCType("Omnicide") ||
+						npc.type == meme.NPCType("SlagFury")) {
+						name = "Primordials";
+						subtitle = "The Doom Sayer";
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Aquaius"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("Omnicide"));
+						ObamaCamera.bossEncounter.Add(meme.NPCType("SlagFury"));
+						save = false;
+					}
+					if (npc.type == meme.NPCType("RealityBreaker")) {
+						subtitle = "The Reality Breaker";
+					}
+				}
+				if (save){ObamaCamera.bossEncounter.Add(npc.type);}
 				if (ObamaCamera.titleData != null && ObamaCamera.titleData.Count > 0) {
 					foreach (var item in ObamaCamera.titleData)
 					{
@@ -210,12 +409,12 @@ namespace ObamaCamera
 			if (config.HitShake) {
 				if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt/2;}
 				else if (camerashake < config.ShakeInt*2) {
-					camerashake += config.ShakeInt/2;
+					camerashake += config.ShakeInt;
 				}
 			}
 		}
 		public override void OnHitNPCWithProj(Projectile proj, NPC target, int damage, float knockback, bool crit) {
-			if (config.KillShake) {
+			if (config.KillShake && proj.friendly && !proj.hostile) {
 				if (target.life <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
 					else {camerashake = config.ShakeInt*2;}
@@ -231,7 +430,7 @@ namespace ObamaCamera
 			}
 		}
 		public override void OnHitPvpWithProj(Projectile proj, Player target, int damage, bool crit) {
-			if (config.KillShake) {
+			if (config.KillShake && proj.friendly && !proj.hostile) {
 				if (target.statLife <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
 					else {camerashake = config.ShakeInt*2;}
@@ -269,11 +468,6 @@ namespace ObamaCamera
 				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 			}
 		}
-		public override void OnRespawn(Player player) {
-			if (config.QuickRespawn) {
-				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
-			}
-		}
 		public override void ProcessTriggers(TriggersSet triggersSet) {
 			if (ObamaCamera.BossLook.Current) {
 				QuickLook = true;
@@ -299,17 +493,124 @@ namespace ObamaCamera
 				CombatText.NewText(player.getRect(),Color.White,config.CameraFollow);
 			}
 		}
-		bool AnyBoss() {
-			for (int i = 0; i < Main.maxNPCs; i++){
-				NPC npc = Main.npc[i];
-				if (npc.active && (npc.boss || npc.type == NPCID.EaterofWorldsHead)) {return true;}
-			}
-			return false;
+		public List<string> biomeEncounter = new List<string>();
+		public override TagCompound Save() {
+			TagCompound tag = new TagCompound();
+			tag.Add("biomeEncounter",biomeEncounter);
+			return tag;
+		}
+		public override void Load(TagCompound tag) {
+			biomeEncounter = tag.GetList<string>("biomeEncounter").ToList();
 		}
 		bool saytheline;
 		public override void PostUpdate() {
-			if (MyConfig.get.AhShit) {
-				if (AnyBoss()) {
+			if (config.NewBiome && ObamaCamera.titleTimer < 1) {
+				string name = "";
+				string subtitle = "";
+				Color color = Color.White;
+				if (player.ZoneJungle && !biomeEncounter.Contains("Jungle")) {
+					name = "Jungle";
+					subtitle = "The Man Eating Forrest";
+					color = Color.Green;
+				}
+				if (player.ZoneDungeon && !biomeEncounter.Contains("Dungeon")) {
+					name = "Dungeon";
+					subtitle = "The Cursed Building";
+					color = Color.LightBlue;
+				}
+				if (player.ZoneCorrupt && !biomeEncounter.Contains("Corruption")) {
+					name = "Corruption";
+					subtitle = "The Corrupted Land";
+					color = Color.Purple;
+				}
+				if (player.ZoneCrimson && !biomeEncounter.Contains("Crimson")) {
+					name = "Crimson";
+					subtitle = "The Land of Flesh";
+					color = Color.Red;
+				}
+				if (player.ZoneHoly && !biomeEncounter.Contains("Hallow")) {
+					name = "Hallow";
+					subtitle = "The Land of Magical Being";
+					color = Color.Pink;
+				}
+				if (player.ZoneSnow && !biomeEncounter.Contains("Ice")) {
+					name = "Ice";
+					subtitle = "The Cold Land";
+					color = Color.Blue;
+				}
+				if (player.ZoneMeteor && !biomeEncounter.Contains("Meteor")) {
+					name = "Meteor";
+					subtitle = "wtf happen here";
+				}
+				if (!player.ZoneBeach && !player.ZoneCorrupt&& !player.ZoneCrimson && player.ZoneDesert && !biomeEncounter.Contains("Desert")) {
+					name = "Desert";
+					subtitle = "The Deserted Land";
+					color = Color.Yellow;
+				}
+				if (player.ZoneGlowshroom && !biomeEncounter.Contains("Glowing Mushroom")) {
+					name = "Glowing Mushroom";
+					subtitle = "The Home of Mutated Mushroom";
+					color = Color.Blue;
+				}
+				if (player.ZoneBeach && !biomeEncounter.Contains("Beach")) {
+					name = "Beach";
+					subtitle = "The Edge of Island";
+					color = Color.Blue;
+				}
+				if (player.ZoneUnderworldHeight && !biomeEncounter.Contains("Underworld")) {
+					name = "Underworld";
+					subtitle = "The Litteral Hell";
+					color = Color.Orange;
+				}
+				if (player.ZoneSkyHeight && !biomeEncounter.Contains("Sky")) {
+					name = "Sky";
+					subtitle = "The Clouds Land";
+					color = Color.LightBlue;
+				}
+				var meme = ModLoader.GetMod("CalamityMod");
+				if (meme != null) {
+					if (ClamModCall("crags") && !biomeEncounter.Contains("Brimstone Crag")) {
+						name = "Brimstone Crag";
+						subtitle = "The Underworld Elemental Land";
+						color = Color.Red;
+					}
+					if (ClamModCall("astral") && !biomeEncounter.Contains("Astral Infection")) {
+						name = "Astral Infection";
+						subtitle = "The Twisted Dreamscape";
+						color = Color.Magenta;
+					}
+					if (ClamModCall("sunkensea") && !biomeEncounter.Contains("Sunken Sea")) {
+						name = "Sunken Sea";
+						subtitle = "The Underground Sea";
+						color = Color.LightBlue;
+					}
+					if (ClamModCall("sulphursea") && !biomeEncounter.Contains("Sulphurous Sea")) {
+						name = "Sulphurous Sea";
+						subtitle = "The Sea Wasteland";
+						color = Color.Yellow;
+					}
+					if (ClamModCall("abyss") && !biomeEncounter.Contains("Abyss")) {
+						name = "Abyss";
+						subtitle = "The Ocean Depths";
+						color = Color.Blue;
+					}
+				}
+				if (name != "") {
+					string hex = "[c/"+color.Hex3()+":";
+					string text = player.name+$" has Discovered "+hex+name+" Biome]";
+					if (Main.netMode == 0){
+						Main.NewText(text,Color.LightYellow);
+					}
+					else if (Main.netMode == 2) {
+						NetMessage.BroadcastChatMessage(NetworkText.FromKey(text), Color.LightYellow);
+					}
+					biomeEncounter.Add(name);
+					ObamaCamera.Title(name,subtitle);
+					ObamaCamera.titleColor = color;
+				}
+			}
+			if (config.AhShit) {
+				if (ObamaCamera.AnyBoss()) {
 					if (!saytheline) {
 						saytheline = true;
 						CombatText.NewText(player.getRect(), Color.White, "Ah shit , here we go again");
@@ -317,6 +618,16 @@ namespace ObamaCamera
 					}
 				}else {saytheline = false;}
 			}
+		}
+		bool ClamModCall(string biome) {
+			var clam = ModLoader.GetMod("CalamityMod");
+			if (clam != null) {
+				object a = clam.Call("GetInZone",player,biome);
+				if (a != null && a is bool flag) {
+					return flag;
+				}
+			}
+			return false;
 		}
 		public bool IsLockCamera;
 		public bool QuickLook;
@@ -431,16 +742,26 @@ namespace ObamaCamera
 				}
 			}
 			if (player.dead) {
-				Vector2 pos = player.Center - centerScreen;
+				Vector2 pos = player.Center ;
 				if (SourcePlayerIndex > -1) {
-					pos = Main.player[SourcePlayerIndex].Center - centerScreen;
+					if (Main.player[SourcePlayerIndex].active) {
+						pos = Main.player[SourcePlayerIndex].Center;
+					}
+					else {SourcePlayerIndex = -1;}
 				}
 				if (SourceNPCIndex > -1) {
-					pos = Main.npc[SourceNPCIndex].Center - centerScreen;
+					if (Main.npc[SourceNPCIndex].active) {
+						pos = Main.npc[SourceNPCIndex].Center;
+					}
+					else {SourceNPCIndex = -1;}
 				}
 				if (SourceProjectileIndex > -1) {
-					pos = Main.projectile[SourceProjectileIndex].Center - centerScreen;
+					if (Main.projectile[SourceProjectileIndex].active) {
+						pos = Main.projectile[SourceProjectileIndex].Center;
+					}
+					else {SourceProjectileIndex = -1;}
 				}
+				pos -= centerScreen;
 				if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,pos,0.1f);}
 				else {Main.screenPosition = pos;}
 
@@ -453,7 +774,12 @@ namespace ObamaCamera
 			}
 			if (config.SmoothCamera) {
 				Main.screenPosition = screenCache;
-				if (flag1){screenCache = Vector2.Lerp(screenCache,player.Center - centerScreen,0.1f);}
+				if (flag1){
+					screenCache = Vector2.Lerp(screenCache,player.Center - centerScreen,0.1f);
+					if (config.QuickSmooth && Vector2.Distance(screenCache,player.Center - centerScreen) > 1500f) {
+						screenCache = player.Center - centerScreen;
+					}
+				}
 			}
 			PostCameraUpdate();
 		}
@@ -544,6 +870,11 @@ namespace ObamaCamera
 					string text = args[1] as string;
 					MyConfig.get.CameraFollow = text;
 				}
+				else if (call == "Title") {
+					string text = args[1] as string;
+					string subtitle = args[2] as string;
+					ObamaCamera.Title(text,subtitle);
+				}
 				else if (call == "IsSmoothCamera") {return MyConfig.get.SmoothCamera;}
 				else if (call == "IsOverride") {return MyConfig.get.Override;}
 				else if (call == "IsEnabled") {return ObamaCamera.Enable;}
@@ -554,9 +885,27 @@ namespace ObamaCamera
 			catch (Exception e) {Logger.Error($"Call Error: You are screwed, {e.StackTrace} {e.Message}");}
 			return null;
 		}
+		public static bool AnyBoss(int index = -1) {
+			for (int i = 0; i < Main.maxNPCs; i++){
+				NPC npc = Main.npc[i];
+				bool flag = true;
+				if (index > -1) {flag = (i != index);}
+				if (flag && npc.active && (npc.boss || npc.type == NPCID.EaterofWorldsHead)) {return true;}
+			}
+			return false;
+		}
 		public override void Load() {
-			titleData.Add(new TitleData(-1,"none","none",null));
+
 			Enable = true;
+			NPCFocus = -1;
+			Moonlord = false;
+
+			//adding dummy values
+			titleData = new List<TitleData>();
+			titleData.Add(new TitleData(-1,"none","none",null));
+
+			bossEncounter = new List<int>();
+			bossEncounter.Add(-1);
 
 			BossLook = RegisterHotKey("Quick Look At Boss", "V");
 			SwitchFollow = RegisterHotKey("Quick Switch Camera", "C");
@@ -570,10 +919,8 @@ namespace ObamaCamera
 			LockCamera = null;
 			bossEncounter = null;
 			titleData = null;
-			NPCFocus = 0;
-			titleTimer = 0;
-			titleText = "";
-			titleSubText = "";
+			titleText = null;
+			titleSubText = null;
 			title2D = null;
 
 			Hacc.Remove();
@@ -582,8 +929,11 @@ namespace ObamaCamera
 			titleText = "";
 			titleSubText = "";
 			title2D = null;
+			titleColor = Color.White;
 		}
+		
 		public static int titleTimer;
+		public static Color titleColor;
 		static Texture2D title2D;
 		static string titleText;
 		static string titleSubText;
@@ -593,6 +943,7 @@ namespace ObamaCamera
 			titleTimer = 240;
 			titleSubText = subtitle;
 			title2D = num;
+			titleColor = Color.White;
 		}
 		public override void PreSaveAndQuit() {
 			titleTimer = 0;
@@ -611,15 +962,16 @@ namespace ObamaCamera
 					alpha = (num - 210f)/30f;
 					alpha = 1f - alpha;
 				}
-				else if (num > max) {
-					num = max;
+				else {
+					if (num > max) {num = max;}
 					alpha = (num/max);
 				}
 				if (title2D != null) {
 					spriteBatch.Draw(title2D, new Vector2(Main.screenWidth/2,Main.screenHeight/2), null, Color.White*alpha, 0f, title2D.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
+					return;
 				}
 				if (titleText == "") {return;}
-				TextSnippet[] snippets = ChatManager.ParseMessage(titleText, (Color.White*alpha)).ToArray();
+				TextSnippet[] snippets = ChatManager.ParseMessage(titleText, (titleColor*alpha)).ToArray();
 				Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
 				Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 				float offset = messageSize.Y / 2f;
@@ -688,10 +1040,10 @@ namespace ObamaCamera
 		[Slider] 
 		public int OverhaulDistance;
 
-		[Label("Quick Camera Respawn")]
-		[Tooltip("immediately set the camera positon to player center on respawn \nonly works when 'Smooth camera' is activated")]
-		[DefaultValue(false)]
-		public bool QuickRespawn;
+		[Label("Quick Smooth Camera")]
+		[Tooltip("Immediately set the camera positon to player center when its too far away")]
+		[DefaultValue(true)]
+		public bool QuickSmooth;
 
 		[Label("Override Other Mod")]
 		[Tooltip("Override any mod that modify screen position")]
@@ -738,7 +1090,7 @@ namespace ObamaCamera
 		[Label("Screen Shake Intensity")]
 		[Tooltip("the intensity of the screenshake \n [default is 4]")]
 		[Range(0, 20)]
-		[Increment(1)]
+		[Increment(2)]
 		[DefaultValue(4)]
 		[Slider] 
 		[DrawTicks]
@@ -746,6 +1098,21 @@ namespace ObamaCamera
 		
 
 		[Header("Experimental and Funny Stuff")]
+
+		[Label("Biome Title")]
+		[Tooltip("Display biome name and the description when discovering a new biome")]
+		[DefaultValue(false)]
+		public bool NewBiome;
+
+		[Label("Biome Title Reset")]
+		[Tooltip("Reset Local Player Discovered Biome \nChange this config to reset")]
+		[DefaultValue(false)]
+		public bool ResetBiome;
+
+		[Label("Text to Combat Text")]
+		[Tooltip("Turn Main text to combat text")]
+		[DefaultValue(false)]
+		public bool TextToCombatText;
 
 		[Label("Screen Shake Forever")]
 		[Tooltip("Make the screen shaked forever, funni")]
@@ -767,6 +1134,39 @@ namespace ObamaCamera
 		[DefaultValue(false)]
 		public bool DemonBanner;
 
+		public override void OnChanged() {
+			if (ResetBiome && !Main.gameMenu) {
+				Main.LocalPlayer.GetModPlayer<Bebeq>().biomeEncounter = new List<string>();
+			}
+		}
+
+	}
+	public class ObamaTitle : ModCommand
+	{
+		public override CommandType Type
+			=> CommandType.Chat;
+
+		public override string Command
+			=> "Title";
+
+		public override string Usage
+			=> "/Title title subtitle";
+
+		public override string Description
+			=> "Display a title";
+
+		public override void Action(CommandCaller caller, string input, string[] args) {
+			if (args.Length == 0) {
+				Main.NewText("command false, require 2 argument '/Title title subtitle'");
+				return;
+			}
+			if (args[0] == null || args[0] == "") {
+				Main.NewText("command false");
+				return;
+			}
+			if (args.Length == 1) {ObamaCamera.Title(args[0],"");}
+			else {ObamaCamera.Title(args[0],args[1]);}
+		}
 	}
 	public static class Hacc
 	{
@@ -774,11 +1174,13 @@ namespace ObamaCamera
 			On.Terraria.Main.PlaySound_int_int_int_int_float_float += SoundPatch;
 			On.Terraria.Player.PickTile += TilePatch;
 			On_ModifyScreenPosition += ScreenPatch;
+			On.Terraria.Main.NewText_string_byte_byte_byte_bool += NewTextPatch;
 		}
 		public static void Remove() {
 			On.Terraria.Main.PlaySound_int_int_int_int_float_float -= SoundPatch;
 			On.Terraria.Player.PickTile -= TilePatch;
 			On_ModifyScreenPosition -= ScreenPatch;
+			On.Terraria.Main.NewText_string_byte_byte_byte_bool -= NewTextPatch;
 		}
 		// sound list
 		// Item_14
@@ -788,60 +1190,15 @@ namespace ObamaCamera
 		// Zombie_92
 		static void SoundShake(int type, int Style,float volumeScale) {
 			int num = 0;
-
+			if ((type == SoundID.Roar && (Style == 0 || Style == 2)) || type == SoundID.ForceRoar) {
+				num = (int)((float)MyConfig.get.ShakeInt*(2f + volumeScale));
+			}
 			if ((type == SoundID.Zombie && (Style == 20 || Style == 104 || Style == 92)) ||
-			 	((type == SoundID.Roar && (Style == 0 || Style == 2)) || type == SoundID.ForceRoar) || 
 			 	(type == SoundID.Item && (Style == 14 || Style == 62))) {
 				num = MyConfig.get.ShakeInt*2;
-				if (MyConfig.get.ShakeLimit) {Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake += num;}
-				else {Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake = num;}
-				return;
-			}
-			bool flag = MyConfig.get.ShakeLimit;
-			var meme = ModLoader.GetMod("CalamityMod");
-			if (meme != null) {
-				var sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/YharonRoarShort");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/YharonRoar");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*3;}
-
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/WyrmScream");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/AstrumDeusSplit");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*3;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/AstrumDeusSpawn");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*3;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/AstrumDeusDeath");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*3;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/ProvidenceDeath");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/DemonshadeEnrage");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/DesertScourgeRoar");
-				if (type == sound.SoundId && Style == sound.Style) {
-					num = MyConfig.get.ShakeInt*2;
-					flag = true;
-				}
-
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/EidolonWyrmRoarClose");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*3;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/ProvidenceHolyBlastImpact");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt;}
-
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/PlagueBoom1");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/PlagueBoom2");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/PlagueBoom3");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-				sound = meme.GetLegacySoundSlot(Terraria.ModLoader.SoundType.Custom, "Sounds/Custom/PlagueBoom4");
-				if (type == sound.SoundId && Style == sound.Style) {num = MyConfig.get.ShakeInt*2;}
-
 			}
 			if (num > 0) {
-				if (flag) {Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake += num;}
+				if (MyConfig.get.ShakeLimit) {Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake += num;}
 				else {Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake = num;}
 			}
 		}
@@ -861,6 +1218,12 @@ namespace ObamaCamera
 				}
 			}
 			return orig(type, x, y, Style,  volumeScale, pitchOffset);
+		}
+		static void NewTextPatch(On.Terraria.Main.orig_NewText_string_byte_byte_byte_bool orig, string newText, byte R, byte G, byte B, bool force) {
+			orig(newText, R, G, B, force);
+			if (MyConfig.get.TextToCombatText) {
+				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
+			}
 		}
 		static void TilePatch(On.Terraria.Player.orig_PickTile orig,Player self,int x, int y, int pickPower)
 		{
