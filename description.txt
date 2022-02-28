@@ -23,27 +23,31 @@ Feature :
 - Quick Look at Boss Hotkey
 - Quick Switch Camera Style Hotkey
 - Lock Camera Hotkey
-[i:184] Some unrelated things but i added it in the mod anyways !!
+[i:184] Some unrelated things !!
 - CJ Ah shid here we go again
 - New Biome Discover Info (show you name of biome and tell other people that you discover it (supports calamity biome))
 - Chat Text to Combat Text !
 - Display Awoken Messages !
-- Display vanilla music name !
+- Display Music Names ( support modded music ) !
 - linux simulator
 
 all of the feature here is configurable :)
 
-Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it to the github repo
+Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it to the github repo or dm me on discord (Neko the Cat'nt#7385)
+
+Note 2 : Mod calls tutorial can be found at the github repo wiki
 
 [ Changelog ]
 
-v.0.7.6
+v.0.8 [ Music Update ]
+- more mod calls !
 - display awoken messages at down center at ur screen
-- display vanilla music name at the down right of ur screen
-- sound are now ogg and uses less memory :)
+- display music name at the down right of ur screen
+- sound are now ogg and amplified
 - added distance limit for sound check
 - added smooth camera intensity
 - added config to disable / enable multiple sound method check
+- rewrited some poorly optimized code
 - fixed screen shake camera doesnt work again for the third time
 
 v.0.7.5
