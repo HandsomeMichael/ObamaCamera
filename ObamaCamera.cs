@@ -28,6 +28,7 @@ using MonoMod.RuntimeDetour.HookGen;
 using Microsoft.Xna.Framework.Audio;
 using Terraria.Audio;
 using Terraria.Graphics.Capture;
+using System.Text.RegularExpressions;
 
 // all in one file lol
 // you can already tell that this code is a nightmare :pe:
@@ -35,7 +36,6 @@ namespace ObamaCamera
 {
 	public class BabuGaming : GlobalTile
 	{
-
 		static Dictionary<int, int> PowerID = new Dictionary<int, int>
 		{
 			{ TileID.Demonite,55},
@@ -95,6 +95,7 @@ namespace ObamaCamera
 	{
 		public override bool InstancePerEntity => true;
 		static bool ThereIsOtherBoss(int index) {
+			if (MyConfig.get.BossIntroMult) {return false;}
 			for (int i = 0; i < Main.maxNPCs; i++)
 			{
 				if (i != index) {
@@ -113,8 +114,8 @@ namespace ObamaCamera
 			if (MyConfig.get.BossIntro && npc.realLife < 0 &&
 				npc.type != NPCID.MoonLordHand && npc.type != NPCID.MoonLordHead &&
 				!ObamaCamera.Moonlord && !ObamaCamera.bossEncounter.Contains(npc.type) && 
-				(npc.boss || npc.type == NPCID.WallofFleshEye || npc.type == NPCID.EaterofWorldsHead) 
-				&& npc.type != NPCID.WallofFlesh && ObamaCamera.NPCFocus == -1 && !ThereIsOtherBoss(npc.whoAmI)) {
+				(npc.boss || npc.type == NPCID.EaterofWorldsHead) 
+				&& ObamaCamera.NPCFocus == -1 && !ThereIsOtherBoss(npc.whoAmI)) {
 
 				ObamaCamera.NPCFocus = npc.whoAmI;
 				string subtitle = "";
@@ -468,6 +469,7 @@ namespace ObamaCamera
 			if (config.SmoothCamera) {
 				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 			}
+			ObamaCamera.nameMusicTime = 0;
 		}
 		public override void ProcessTriggers(TriggersSet triggersSet) {
 			if (ObamaCamera.BossLook.Current) {
@@ -475,7 +477,10 @@ namespace ObamaCamera
 			}
 			if (ObamaCamera.LockCamera.JustPressed) {
 				IsLockCamera = (!IsLockCamera);
-				CombatText.NewText(player.getRect(),(IsLockCamera ? Color.LightGreen : Color.Pink),(IsLockCamera ? "Camera Lock":"Camera Unlock"));
+				Color color = (IsLockCamera ? Color.LightGreen : Color.Pink);
+				string hex = "[c/"+color.Hex3()+":";
+				ObamaCamera.DisplayAwoken(hex+(IsLockCamera ? "Camera Lock]":"Camera Unlock]"));
+				//CombatText.NewText(player.getRect(),(IsLockCamera ? Color.LightGreen : Color.Pink),(IsLockCamera ? "Camera Lock":"Camera Unlock"));
 			}
 			if (ObamaCamera.SwitchFollow.JustPressed) {
 				if (config.CameraFollow == "Player") {
@@ -491,7 +496,9 @@ namespace ObamaCamera
 					config.CameraFollow = "Player";
 				}
 				//ObamaCamera.Title(config.CameraFollow);
-				CombatText.NewText(player.getRect(),Color.White,config.CameraFollow);
+				string hex = "[c/"+Color.White.Hex3()+":";
+				ObamaCamera.DisplayAwoken(hex+"Mode : "+config.CameraFollow+"]");
+				//CombatText.NewText(player.getRect(),Color.White,config.CameraFollow);
 			}
 		}
 		public List<string> biomeEncounter = new List<string>();
@@ -701,7 +708,7 @@ namespace ObamaCamera
 					if (type == "Boss and Player") {
 						if (config.SmoothCamera){
 							Vector2 pos = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);
-							screenCache = Vector2.Lerp(screenCache,pos,0.1f);
+							screenCache = Vector2.Lerp(screenCache,pos,config.SmoothCameraInt);
 						}
 						else {Main.screenPosition = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);}
 						flag1 = false;
@@ -730,7 +737,7 @@ namespace ObamaCamera
 					}
 				}
 				if (index > 0) {
-					if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,targetCenter - centerScreen,0.1f);}
+					if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,targetCenter - centerScreen,config.SmoothCameraInt);}
 					else {Main.screenPosition = targetCenter - centerScreen;}
 				}
 			}
@@ -763,7 +770,7 @@ namespace ObamaCamera
 					else {SourceProjectileIndex = -1;}
 				}
 				pos -= centerScreen;
-				if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,pos,0.1f);}
+				if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,pos,config.SmoothCameraInt);}
 				else {Main.screenPosition = pos;}
 
 				flag1 = false;	
@@ -820,10 +827,21 @@ namespace ObamaCamera
 	}
 	public class ObamaCamera : Mod
 	{
+		public struct MusicRegister{
+			internal int music;
+			internal string name;
+			internal string composer;
+			public MusicRegister(int music,string name,string composer) {
+				this.music = music;
+				this.name = name;
+				this.composer = composer;
+			}
+		}
+		//boy thats a lot of static fields
 		public static ModHotKey BossLook;
 		public static ModHotKey SwitchFollow;
 		public static ModHotKey LockCamera;
-
+		public static List<MusicRegister> musList = new List<MusicRegister>();
 		public static List<TitleData> titleData = new List<TitleData>();
 		public static List<int> bossEncounter = new List<int>();
 		public static bool Moonlord;
@@ -876,6 +894,27 @@ namespace ObamaCamera
 					string subtitle = args[2] as string;
 					ObamaCamera.Title(text,subtitle);
 				}
+				else if (call == "TitleColor") {
+					string text = args[1] as string;
+					string subtitle = args[2] as string;
+					Color? color = args[3] as Color?;
+					ObamaCamera.Title(text,subtitle);
+					titleColor = color ?? Color.White;
+				}
+				else if (call == "TitleTexture") {
+					Texture2D text = args[1] as Texture2D;
+					ObamaCamera.Title("","",text);
+				}
+				else if (call == "Announce") {
+					string text = args[1] as string;
+					ObamaCamera.DisplayAwoken(text);
+				}
+				else if (call == "RegisterMusic") {
+					int mus = Convert.ToInt32(args[1]);
+					string name = args[2] as string;
+					string composer = args[3] as string;
+					musList.Add(new MusicRegister(mus,name,composer));
+				}
 				else if (call == "IsSmoothCamera") {return MyConfig.get.SmoothCamera;}
 				else if (call == "IsOverride") {return MyConfig.get.Override;}
 				else if (call == "IsEnabled") {return ObamaCamera.Enable;}
@@ -895,6 +934,75 @@ namespace ObamaCamera
 			}
 			return false;
 		}
+		string CutOff(string name) {
+			string names = name;
+			names = names.Replace("Music","");
+			names = names.Replace("music","");
+			names = names.Replace("Box","");
+			names = names.Replace("box","");
+			names = names.Replace("Item","");
+			names = names.Replace("item","");
+			names = names.Replace("1","");
+			names = names.Replace("2","Second");
+			names = names.Replace("3","Third");
+			names = names.Replace("4","Fourth");
+			/*
+			if (names == "" || names == null) {
+				Logger.InfoFormat($"{Name} failed getting name [{names}]");
+			}
+			*/
+			names = names.Replace("_"," ");
+			names += "Theme";
+			names = Regex.Replace(names, "([A-Z])", " $1").Trim();
+			return names;
+		}
+		public override void PostAddRecipes() {
+		//public override void PostSetupContent() {
+
+			FieldInfo field = typeof(SoundLoader).GetField("musicToItem", BindingFlags.NonPublic | BindingFlags.Static);
+ 			IDictionary<int, int> musicToItem = (IDictionary<int, int>)field.GetValue(typeof(SoundLoader));
+
+			Logger.InfoFormat($"{Name} start manually add music from {musicToItem.Count} music boxes");
+			foreach (var item in musicToItem)
+			{
+				//Logger.InfoFormat($"{Name} Registering = [{item.Key}] [{item.Value}]");
+				Item i = new Item();
+				i.SetDefaults(item.Value);
+				string names = i.Name;
+				names = names.Replace("Music Box","");
+				names = names.Replace("(","");
+				names = names.Replace(")","");
+				string composer = i.modItem.mod.DisplayName;
+				if (i.modItem.mod.Name == "CalamityModMusic") {
+					composer = "DM Dokuro";
+				}
+				if (names == "" || names == null) {
+					Logger.InfoFormat($"{Name} failed getting name [{i.type}] [{i.modItem.Name}] , setting up internal name");
+					names = CutOff(i.modItem.Name);
+				}
+				musList.Add(new MusicRegister(item.Key,names,composer));
+				//Logger.InfoFormat($"{Name} [{names}] succesfuly registered");
+			}
+			Logger.InfoFormat($"{Name} done !");
+			/*
+			for (int i = 0; i < musicToItem.Count; i++){
+				Logger.InfoFormat($"{Name} music {i}");
+				if (musicToItem[i] != null) {
+					int num = (int)musicToItem[i];
+					Item item = new Item();
+					item.SetDefaults(num);
+					Logger.InfoFormat($"{Name} registering");
+					if (item.modItem != null) {
+						string name = item.Name;
+						name = name.Replace("Box","");
+						name = name.Replace("Music","");
+						musList.Add(new MusicRegister(i,name,item.modItem.mod.DisplayName));
+						Logger.InfoFormat($"{Name} succesfuly registered");
+					}
+				}
+			}
+			*/
+		}
 		public override void Load() {
 
 			Enable = true;
@@ -902,6 +1010,8 @@ namespace ObamaCamera
 			Moonlord = false;
 
 			//adding dummy values
+			musList = new List<MusicRegister>();
+			musList.Add(new MusicRegister(-1,"Unknown Music","tModLoader"));
 			titleData = new List<TitleData>();
 			titleData.Add(new TitleData(-1,"none","none",null));
 
@@ -915,6 +1025,7 @@ namespace ObamaCamera
 			Hacc.Add();
 		}
 		public override void Unload() {
+			musList = null;
 			BossLook = null;
 			SwitchFollow = null;
 			LockCamera = null;
@@ -941,7 +1052,7 @@ namespace ObamaCamera
 		static int awokenTime;
 
 		static string nameMusic;
-		static int nameMusicTime;
+		public static int nameMusicTime;
 		static int curMus;
 
 		public static void Title(string text, string subtitle = "", Texture2D num = null) {
@@ -966,55 +1077,118 @@ namespace ObamaCamera
 			string text = "Unknown";
 			// idk i never liked switch case
 			if (curMus == 1) {text = "Overworld Day";}
-			if (curMus == 2) {text = "Eerie";}
-			if (curMus == 3) {text = "Night";}
-			if (curMus == 4) {text = "Underground";}
-			if (curMus == 5) {text = "Boss 1";}
-			if (curMus == 6) {text = "Title";}
-			if (curMus == 7) {text = "Jungle";}
-			if (curMus == 8) {text = "Corruption";}
-			if (curMus == 9) {text = "The Hallow";}
-			if (curMus == 10) {text = "Underground Corruption";}
-			if (curMus == 11) {text = "Underground Hallow";}
-			if (curMus == 12) {text = "Boss 2";}
-			if (curMus == 13) {text = "Boss 3";}
-			if (curMus == 14) {text = "Snow";}
-			if (curMus == 15) {text = "Space";}
-			if (curMus == 16) {text = "Crimson";}
-			if (curMus == 17) {text = "Boss 4";}
-			if (curMus == 18) {text = "Alt Overworld Day";}
-			if (curMus == 19) {text = "Rain";}
-			if (curMus == 20) {text = "Ice";}
-			if (curMus == 21) {text = "Desert";}
-			if (curMus == 22) {text = "Ocean";}
-			if (curMus == 23) {text = "Dungeon";}
-			if (curMus == 24) {text = "Plantera";}
-			if (curMus == 25) {text = "Boss5";}
-			if (curMus == 26) {text = "Temple";}
-			if (curMus == 27) {text = "Eclipse";}
-			//if (curMus == 28) {text = "Rain Sound Effect";}
-			if (curMus == 29) {text = "Mushrooms";}
-			if (curMus == 30) {text = "Pumpkin Moon";}
-			if (curMus == 31) {text = "Alt Underground";}
-			if (curMus == 32) {text = "FrostMoon";}
-			if (curMus == 33) {text = "Underground Crimson";}
-			if (curMus == 34) {text = "The Towers";}
-			if (curMus == 35) {text = "Pirate Invasion";}
-			if (curMus == 36) {text = "Hell";}
-			if (curMus == 37) {text = "Martian Madness";}
-			if (curMus == 38) {text = "Lunar Boss";}
-			if (curMus == 39) {text = "Goblin Invasion";}
-			if (curMus == 40) {text = "Sandstorm";}
-			if (curMus == 41) {text = "Old Ones Army";}
-			if (text == "Unknown") {return;}
+			else if (curMus == 2) {text = "Eerie";}
+			else if (curMus == 3) {text = "Night";}
+			else if (curMus == 4) {text = "Underground";}
+			else if (curMus == 5) {text = "Boss 1";}
+			else if (curMus == 6) {text = "Title";}
+			else if (curMus == 7) {text = "Jungle";}
+			else if (curMus == 8) {text = "Corruption";}
+			else if (curMus == 9) {text = "The Hallow";}
+			else if (curMus == 10) {text = "Underground Corruption";}
+			else if (curMus == 11) {text = "Underground Hallow";}
+			else if (curMus == 12) {text = "Boss 2";}
+			else if (curMus == 13) {text = "Boss 3";}
+			else if (curMus == 14) {text = "Snow";}
+			else if (curMus == 15) {text = "Space";}
+			else if (curMus == 16) {text = "Crimson";}
+			else if (curMus == 17) {text = "Boss 4";}
+			else if (curMus == 18) {text = "Alt Overworld Day";}
+			else if (curMus == 19) {text = "Rain";}
+			else if (curMus == 20) {text = "Ice";}
+			else if (curMus == 21) {text = "Desert";}
+			else if (curMus == 22) {text = "Ocean";}
+			else if (curMus == 23) {text = "Dungeon";}
+			else if (curMus == 24) {text = "Plantera";}
+			else if (curMus == 25) {text = "Boss5";}
+			else if (curMus == 26) {text = "Temple";}
+			else if (curMus == 27) {text = "Eclipse";}
+			//else if (curMus == 28) {text = "Rain Sound Effect";}
+			else if (curMus == 29) {text = "Mushrooms";}
+			else if (curMus == 30) {text = "Pumpkin Moon";}
+			else if (curMus == 31) {text = "Alt Underground";}
+			else if (curMus == 32) {text = "FrostMoon";}
+			else if (curMus == 33) {text = "Underground Crimson";}
+			else if (curMus == 34) {text = "The Towers";}
+			else if (curMus == 35) {text = "Pirate Invasion";}
+			else if (curMus == 36) {text = "Hell";}
+			else if (curMus == 37) {text = "Martian Madness";}
+			else if (curMus == 38) {text = "Lunar Boss";}
+			else if (curMus == 39) {text = "Goblin Invasion";}
+			else if (curMus == 40) {text = "Sandstorm";}
+			else if (curMus == 41) {text = "Old Ones Army";}
 			text += " Theme";
 			text += "\nby Scott Lloyd Shelly";
+			foreach (var music in musList){
+				//Main.NewText("cur mus = "+curMus+" / "+music.music);
+				if (curMus == music.music) {
+					text = music.name+"\n by "+music.composer;
+				}
+			}
+			if (text == "Unknown") {return;}
 			nameMusic = text;
 			nameMusicTime = 240;
 		}
 		public static void DisplayAwoken(string text) {
 			awoken = text;
 			awokenTime = 240;
+		}
+		static int MusicToItemVanilla(int mus) {
+			if (mus == 1) {return ItemID.MusicBoxOverworldDay;}
+			if (mus == 2) {return ItemID.MusicBoxEerie;}
+			if (mus == 3) {return ItemID.MusicBoxNight;}
+			if (mus == 4) {return ItemID.MusicBoxUnderground;}
+			if (mus == 5) {return ItemID.MusicBoxBoss1;}
+			if (mus == 6) {return ItemID.MusicBoxTitle;}
+			if (mus == 7) {return ItemID.MusicBoxJungle;}
+			if (mus == 8) {return ItemID.MusicBoxCorruption;}
+			if (mus == 9) {return ItemID.MusicBoxTheHallow;}
+			if (mus == 10) {return ItemID.MusicBoxUndergroundCorruption;}
+			if (mus == 11) {return ItemID.MusicBoxUndergroundHallow;}
+			if (mus == 12) {return ItemID.MusicBoxBoss2;}
+			if (mus == 13) {return ItemID.MusicBoxBoss3;}
+			if (mus == 14) {return ItemID.MusicBoxSnow;}
+			if (mus == 15) {return ItemID.MusicBoxSpace;}
+			if (mus == 16) {return ItemID.MusicBoxCrimson;}
+			if (mus == 17) {return ItemID.MusicBoxBoss4;}
+			if (mus == 18) {return ItemID.MusicBoxAltOverworldDay;}
+			if (mus == 19) {return ItemID.MusicBoxRain;}
+			if (mus == 20) {return ItemID.MusicBoxIce;}
+			if (mus == 21) {return ItemID.MusicBoxDesert;}
+			if (mus == 22) {return ItemID.MusicBoxOcean;}
+			if (mus == 23) {return ItemID.MusicBoxDungeon;}
+			if (mus == 24) {return ItemID.MusicBoxPlantera;}
+			if (mus == 25) {return ItemID.MusicBoxBoss5;}
+			if (mus == 26) {return ItemID.MusicBoxTemple;}
+			if (mus == 27) {return ItemID.MusicBoxEclipse;}
+			//if (mus == 28) {return ItemID.;}
+			if (mus == 29) {return ItemID.MusicBoxMushrooms;}
+			if (mus == 30) {return ItemID.MusicBoxPumpkinMoon;}
+			if (mus == 31) {return ItemID.MusicBoxAltUnderground;}
+			if (mus == 32) {return ItemID.MusicBoxFrostMoon;}
+			if (mus == 33) {return ItemID.MusicBoxUndergroundCrimson;}
+			if (mus == 34) {return ItemID.MusicBoxTowers;}
+			if (mus == 35) {return ItemID.MusicBoxPirates;}
+			if (mus == 36) {return ItemID.MusicBoxHell;}
+			if (mus == 37) {return ItemID.MusicBoxMartians;}
+			if (mus == 38) {return ItemID.MusicBoxLunarBoss;}
+			if (mus == 39) {return ItemID.MusicBoxGoblins;}
+			if (mus == 40) {return ItemID.MusicBoxSandstorm;}
+			if (mus == 41) {return ItemID.MusicBoxDD2;}
+			return ItemID.MusicBox;
+		}
+		static int MusicToItem(int mus) {
+			if (mus < 42) {
+				return MusicToItemVanilla(mus);
+			}
+			FieldInfo field = typeof(SoundLoader).GetField("musicToItem", BindingFlags.NonPublic | BindingFlags.Static);
+ 			IDictionary<int, int> musicToItem = (IDictionary<int, int>)field.GetValue(typeof(SoundLoader));
+			foreach (var item in musicToItem){
+				if (item.Key == mus) {
+					return item.Value;
+				}
+			}
+			return ItemID.MusicBox;
 		}
 		static void DrawAwoken(SpriteBatch spriteBatch) {
 			if (awokenTime > 0) {
@@ -1037,6 +1211,7 @@ namespace ObamaCamera
 				pos = pos.Floor();
 				pos.Y += Main.screenHeight/4f;
 				pos.Y += Main.screenHeight/8f;
+				//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
 				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, new Vector2(messageSize.X / 2f,messageSize.Y / 2f), new Vector2(0.5f,0.5f), out int hover);
 			}
 		}
@@ -1093,9 +1268,14 @@ namespace ObamaCamera
 				if (nameMusic == "") {return;}
 				TextSnippet[] snippets = ChatManager.ParseMessage(nameMusic, (Color.White*alpha)).ToArray();
 				Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
-				Vector2 pos = new Vector2(Main.screenWidth/8,Main.screenHeight);
-				pos.Y -= 30;
+				Vector2 pos = new Vector2(Main.screenWidth,Main.screenHeight);
+				pos.Y -= messageSize.Y/4f;
+				pos.X -= messageSize.X/4f;
 				pos = pos.Floor();
+				int mus = MusicToItem(curMus);
+				Texture2D texture = Main.itemTexture[mus];
+				spriteBatch.Draw(texture, pos - new Vector2(messageSize.X/4f + texture.Width,0), null, Color.White*alpha, 0f, texture.Size()/2f, 1f, SpriteEffects.None, 0f);
+				//Utils.DrawBorderString(spriteBatch,$"[i:{mus}]",pos - new Vector2(messageSize.X*1.5f,0),Color.White*alpha);
 				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, new Vector2(messageSize.X / 2f,messageSize.Y / 2f), new Vector2(0.5f,0.5f), out int hover);
 			}
 		}
@@ -1105,15 +1285,16 @@ namespace ObamaCamera
 			DrawMusic(spriteBatch);
 		}
 		public override void UpdateUI(GameTime gameTime) {
-			if (MyConfig.get.musicName && !Main.gameMenu ) {
-				if (curMus != Main.curMusic) {
+			//Main.musicFade[curMus] > 0f
+			if (MyConfig.get.musicName && !Main.gameMenu) {
+				if (curMus != Main.curMusic && Main.curMusic > 0 && Main.musicFade[Main.curMusic] >= 1f) {
 					curMus = Main.curMusic;
 					ShowMusic();
 				}
 			}
 		}
 
-		// never ever :hognar:
+		// net code moment
 		//public override void HandlePacket(BinaryReader reader, int whoAmI) {}
 	}
 	[Label("Obama Camera")]
@@ -1132,7 +1313,7 @@ namespace ObamaCamera
 
 		[Label("Smooth camera intensity")]
 		[Tooltip("The intensity of smooth camera\n [default is 0.1]")]
-		[Range(0.01f, 0.5f)]
+		[Range(0.01f, 0.4f)]
 		[Increment(0.05f)]
 		[DefaultValue(0.1f)]
 		[DrawTicks]
@@ -1160,6 +1341,11 @@ namespace ObamaCamera
 		[Tooltip("Make the camera lock on bosses when they first spawned \nand display the name of the boss")]
 		[DefaultValue(true)]
 		public bool BossIntro;
+
+		[Label("Camera Boss Intro Multiple")]
+		[Tooltip("Make camera boss applies multiple times")]
+		[DefaultValue(true)]
+		public bool BossIntroMult;
 
 		[Label("Camera Follow Mouse")]
 		[Tooltip("Make the camera follow mouse \nlike Terraria overhaul mod")]
