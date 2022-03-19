@@ -1,6 +1,6 @@
-Obama Camera Overhaul is a mod that allows you to chance how camera works
+[c/FF0000:Obama Camera Overhaul] is a mod that allows you to chance how camera works and also adding some other unrelated things such as music display , boss intro , biome discovery and other stuff
 
-Inspired by my previous mod Obama Gaming and Terraria Overhaul.
+Inspired by my previous mod [c/FFFF00:Obama Gaming] and [c/FFFF00:Terraria Overhaul].
 works with other mod and sniper scope. 
 
 Feature :
@@ -13,6 +13,7 @@ Feature :
 - Smooth Camera
 - Epic Boss Intro 
 - Death cam
+- Spectate players
 [i:184] Bunch of Screen Shakes !!
 - Screen Shakes on getting hurt
 - Screen Shakes on kill and hit enemy
@@ -25,19 +26,43 @@ Feature :
 - Lock Camera Hotkey
 [i:184] Some unrelated things !!
 - CJ Ah shid here we go again
-- New Biome Discover Info (show you name of biome and tell other people that you discover it (supports calamity biome))
+- New Biome Discover Info (show you name of biome and tell other people that you discover it)
 - Chat Text to Combat Text !
 - Display Awoken Messages !
-- Display Music Names ( support modded music ) !
+- Display Music Names ( works with EVERY music ) !
+- Display Subworld Name ( for subworld lib )
+- New Music Commands ! ( /musiclist , /musicplay )
 - linux simulator
 
-all of the feature here is configurable :)
+all of the feature here is configurable in the config menu :)
 
 Note : this mod is open source. you can contribute to this if you wanted to,the homepage is the github repo also if you found some bug please report it to the github repo or dm me on discord (Neko the Cat'nt#7385)
 
 Note 2 : Mod calls tutorial can be found at the github repo wiki
 
 [ Changelog ]
+
+V.0.8.6
+- music list is now sorted
+- added experimental "Velocity based camera"
+- added display subworld name !
+- added spectate other players !
+- added Stars Above mod support !
+- added biome support for thorium mod !
+- added Terraria Overhaul Music Composer
+- added config to offset display music name !
+- added option to disable the whole camera system (for people that only enjoy side feature of this mod or fixing terraria overhaul )
+- fixed death cam cant be turned off
+
+v.0.8.3
+- added /musicplay command
+- added /musiclist command
+- added /undiscoverall command
+- added experimental "Music Reload Fix"
+- added experimental "Display music name custom timer"
+- display music name now works with EVERY MUSIC ! including the not registered one !
+- fixed bug with terraria overhaul doesnt want to display music
+- fixed bug with chat tags on mod display name by simply destroy it ( i hate chat tags )
 
 v.0.8 [ Music Update ]
 - more mod calls !
