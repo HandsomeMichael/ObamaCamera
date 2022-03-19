@@ -29,6 +29,10 @@ using Microsoft.Xna.Framework.Audio;
 using Terraria.Audio;
 using Terraria.Graphics.Capture;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
+using ReLogic.Graphics;
+using System.Runtime;
+using Microsoft.Xna.Framework.Input;
 
 // all in one file lol
 // you can already tell that this code is a nightmare :pe:
@@ -57,14 +61,12 @@ namespace ObamaCamera
 			{ TileID.Chlorophyte, 200 }
 		};
 		public override void KillTile(int i, int j, int type, ref bool fail, ref bool effectOnly, ref bool noItem) {
-			Player player = Main.LocalPlayer;
-			var p = player.GetModPlayer<Bebeq>();
-			if (MyConfig.get.TileShake && p.pickX == i && p.pickY == j && fail) {
+			if (MyConfig.get.TileShake && Bebeq.pickX == i && Bebeq.pickY == j && fail) {
 				ModTile mt = TileLoader.GetTile(type);
 				string text = "";
-				if (mt != null && p.pickPower > 0 && p.pickPower < mt.minPick)
+				if (mt != null && Bebeq.pickPower > 0 && Bebeq.pickPower < mt.minPick)
 					text = $"Require {mt.minPick}% Mining Power";
-				else if ((PowerID.ContainsKey(type) || Main.tileDungeon[type]) && p.pickPower > 0) {
+				else if ((PowerID.ContainsKey(type) || Main.tileDungeon[type]) && Bebeq.pickPower > 0) {
 					int power = 0;
 					if (Main.tileDungeon[type]) {
 						power = 65;
@@ -72,28 +74,27 @@ namespace ObamaCamera
 					else {power = PowerID[type];}
 					if ((type == 22 || type == 204) && j < Main.worldSurface ){power = 0;}
 
-					if (Main.tileDungeon[type] && p.pickPower < 65)
+					if (Main.tileDungeon[type] && Bebeq.pickPower < 65)
 					{
 						bool a = (double)i < (double)Main.maxTilesX * 0.35;
 						bool b = (double)i > (double)Main.maxTilesX * 0.65;
 						if (!a && !b){power = 0;}
 					}
-					if (p.pickPower < power) {
+					if (Bebeq.pickPower < power) {
 						text = $"Require {power}% Mining Power";
 					}
 				}
 
 				if (text != "") {
-					CombatText.NewText(player.getRect(),Color.Red,text);
-					if (MyConfig.get.ShakeLimit) {p.camerashake += MyConfig.get.ShakeInt;}
-					else {p.camerashake = MyConfig.get.ShakeInt;}
+					CombatText.NewText(Main.LocalPlayer.getRect(),Color.Red,text);
+					if (MyConfig.get.ShakeLimit) {Bebeq.camerashake += MyConfig.get.ShakeInt;}
+					else {Bebeq.camerashake = MyConfig.get.ShakeInt;}
 				}
 			}
 		}
 	}
 	public class Moonlord : GlobalNPC
 	{
-		public override bool InstancePerEntity => true;
 		static bool ThereIsOtherBoss(int index) {
 			if (MyConfig.get.BossIntroMult) {return false;}
 			for (int i = 0; i < Main.maxNPCs; i++)
@@ -111,7 +112,7 @@ namespace ObamaCamera
 			return false;
 		}
 		public override void PostAI(NPC npc) {
-			if (MyConfig.get.BossIntro && npc.realLife < 0 &&
+			if (MyConfig.get.BossIntro && (npc.realLife < 0 || npc.type == NPCID.TheDestroyer) &&
 				npc.type != NPCID.MoonLordHand && npc.type != NPCID.MoonLordHead &&
 				!ObamaCamera.Moonlord && !ObamaCamera.bossEncounter.Contains(npc.type) && 
 				(npc.boss || npc.type == NPCID.EaterofWorldsHead) 
@@ -254,67 +255,8 @@ namespace ObamaCamera
 						subtitle = "The Brimstone Witch";
 					}
 				}
-				meme = ModLoader.GetMod("Split");
-				if (meme != null) {
-					if (npc.type == meme.NPCType("CommandoBoss")) {
-						subtitle = "The Invader Commando";
-					}
-					if (npc.type == meme.NPCType("Insurgent")) {
-						subtitle = "The Troller";
-					}
-					if (npc.type == meme.NPCType("Menace")) {
-						subtitle = "The Funny Cloud";
-					}
-					if (npc.type == meme.NPCType("Mirage")) {
-						subtitle = "The Epic Witch";
-					}
-					if (npc.type == meme.NPCType("OneShot")) {
-						subtitle = "The Aimboter";
-					}
-					if (npc.type == meme.NPCType("Paraffin")) {
-						subtitle = "The Candle Clown";
-					}
-					if (npc.type == meme.NPCType("Seth")) {
-						subtitle = "The Knight";
-					}
-					if (npc.type == meme.NPCType("TheSpirit")) {
-						subtitle = "The Spirited Woman (flushed)";
-					}
-				}
 				meme = ModLoader.GetMod("ThoriumMod");
 				if (meme != null) {
-					if (npc.type == meme.NPCType("Viscount")) {
-						subtitle = "The Draculist Bat";
-					}
-					if (npc.type == meme.NPCType("FallenDeathBeholder")) {
-						name = "Coznix";
-						subtitle = "The Fallen Beholder";
-					}
-					if (npc.type == meme.NPCType("BoreanStrider")) {
-						subtitle = "The Snowy Strider";
-					}
-					if (npc.type == meme.NPCType("TheBuriedWarrior")) {
-						subtitle = "The Warrior of Greeks";
-					}
-					if (npc.type == meme.NPCType("Abyssion")) {
-						name = "Abyssion";
-						subtitle = "The Forgotten One";
-					}
-					if (npc.type == meme.NPCType("Lich")) {
-						subtitle = "The Life Taker";
-					}
-					if (npc.type == meme.NPCType("QueenJelly")) {
-						subtitle = "The Queen Of Evil Jelly";
-					}
-					if (npc.type == meme.NPCType("ThePrimeScouter")) {
-						subtitle = "The Invader Scouter";
-					}
-					if (npc.type == meme.NPCType("TheGrandThunderBirdv2")) {
-						subtitle = "The Bird Of Thunder";
-					}
-					if (npc.type == meme.NPCType("Lich")) {
-						subtitle = "The Draculist Bat";
-					}
 					if (npc.type == meme.NPCType("Aquaius") || npc.type == meme.NPCType("Omnicide") ||
 						npc.type == meme.NPCType("SlagFury")) {
 						name = "Primordials";
@@ -324,16 +266,15 @@ namespace ObamaCamera
 						ObamaCamera.bossEncounter.Add(meme.NPCType("SlagFury"));
 						save = false;
 					}
-					if (npc.type == meme.NPCType("RealityBreaker")) {
-						subtitle = "The Reality Breaker";
-					}
 				}
 				if (save){ObamaCamera.bossEncounter.Add(npc.type);}
 				if (ObamaCamera.titleData != null && ObamaCamera.titleData.Count > 0) {
 					foreach (var item in ObamaCamera.titleData)
 					{
-						if (item != null && item.type == npc.type) {
-							name = item.text;
+						if (item.type == npc.type) {
+							if (item.text != "") {
+								name = item.text;
+							}
 							subtitle = item.subtext;
 							texture = item.texture;
 						}
@@ -350,10 +291,10 @@ namespace ObamaCamera
 				int num = MyConfig.get.ShakeInt;
 				if (wormShake(npc,ref num) && tile.active() && Main.tileSolid[tile.type]) {
 					if (MyConfig.get.ShakeLimit) {
-						Main.player[npc.target].GetModPlayer<Bebeq>().camerashake += num;
+						Bebeq.camerashake += num;
 					}
 					else {
-						Main.player[npc.target].GetModPlayer<Bebeq>().camerashake = num;
+						Bebeq.camerashake = num;
 					}
 				}
 			}
@@ -390,24 +331,25 @@ namespace ObamaCamera
 	{
 		public MyConfig config => ModContent.GetInstance<MyConfig>();
 
-		Vector2 screenCache = new Vector2(0,0);
-		Vector2 screenLock = new Vector2(0,0);
+		static Vector2 screenCache = new Vector2(0,0);
+		static Vector2 screenLock = new Vector2(0,0);
 
-		public int SourcePlayerIndex = -1;
-		public int SourceNPCIndex = -1;
-		public int SourceProjectileIndex = -1;
+		public static int SourcePlayerIndex = -1;
+		public static int SourceNPCIndex = -1;
+		public static int SourceProjectileIndex = -1;
 
-		public int pickX;
-		public int pickY;
-		public int pickPower;
+		public static int pickX;
+		public static int pickY;
+		public static int pickPower;
 
-		public int camerashake;
+		public static int camerashake;
 
 		public override void ResetEffects() {
 			pickX = -1;
 			pickY = -1;
 		}
 		public override void OnHitAnything(float x, float y, Entity victim) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.HitShake) {
 				if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt/2;}
 				else if (camerashake < config.ShakeInt*2) {
@@ -416,6 +358,7 @@ namespace ObamaCamera
 			}
 		}
 		public override void OnHitNPCWithProj(Projectile proj, NPC target, int damage, float knockback, bool crit) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.KillShake && proj.friendly && !proj.hostile) {
 				if (target.life <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
@@ -424,6 +367,7 @@ namespace ObamaCamera
 			}
 		}
 		public override void OnHitPvp(Item item, Player target, int damage, bool crit) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.KillShake) {
 				if (target.statLife <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
@@ -432,6 +376,7 @@ namespace ObamaCamera
 			}
 		}
 		public override void OnHitPvpWithProj(Projectile proj, Player target, int damage, bool crit) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.KillShake && proj.friendly && !proj.hostile) {
 				if (target.statLife <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
@@ -440,6 +385,7 @@ namespace ObamaCamera
 			}
 		}
 		public override void OnHitNPC(Item item, NPC target, int damage, float knockback, bool crit) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.KillShake) {
 				if (target.life <= 0) {
 					if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
@@ -448,26 +394,44 @@ namespace ObamaCamera
 			}
 		}
 		public override void PostHurt(bool pvp, bool quiet, double damage, int hitDirection, bool crit) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			if (config.HurtShake) {
 				if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt;}
 				else {camerashake = config.ShakeInt;}
 			}
 		}
 		public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource) {
+			if (player.whoAmI != Main.myPlayer) {return;}
 			SourcePlayerIndex = -1;
 			SourceProjectileIndex = -1;
 			SourceNPCIndex = -1;
 			SourcePlayerIndex = damageSource.SourcePlayerIndex;
 			SourceNPCIndex = damageSource.SourceNPCIndex;
 			SourceProjectileIndex = damageSource.SourceProjectileIndex;
+			if (SourcePlayerIndex == -1 && config.spectateNearest) {
+				Vector2 pos = player.Center;
+				Vector2 targetCenter = player.Center;
+				for (int i = 0; i < Main.maxPlayers; i++) {
+					Player npc = Main.player[i];
+					if (npc.active && !npc.dead && i != Main.myPlayer) {
+						float between = Vector2.Distance(npc.Center, pos);
+						bool closest = Vector2.Distance(pos, targetCenter) > between;
+						if (closest || SourcePlayerIndex == -1) {
+							SourcePlayerIndex = i;
+							targetCenter = npc.Center;
+						}
+					}
+				}
+			}
 			if (config.HurtShake) {
 				if (MyConfig.get.ShakeLimit) {camerashake += config.ShakeInt*2;}
 				else{camerashake = config.ShakeInt*2;}
 			}
 		}
-		public override void OnEnterWorld(Player player) {
+		public override void OnEnterWorld(Player p) {
+			if (p.whoAmI != Main.myPlayer) {return;}
 			if (config.SmoothCamera) {
-				screenCache = player.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+				screenCache = p.Center - new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 			}
 			ObamaCamera.nameMusicTime = 0;
 		}
@@ -478,8 +442,8 @@ namespace ObamaCamera
 			if (ObamaCamera.LockCamera.JustPressed) {
 				IsLockCamera = (!IsLockCamera);
 				Color color = (IsLockCamera ? Color.LightGreen : Color.Pink);
-				string hex = "[c/"+color.Hex3()+":";
-				ObamaCamera.DisplayAwoken(hex+(IsLockCamera ? "Camera Lock]":"Camera Unlock]"));
+				ObamaCamera.DisplayAwoken((IsLockCamera ? "Camera Lock":"Camera Unlock"));
+				ObamaCamera.awokenColor = color;
 				//CombatText.NewText(player.getRect(),(IsLockCamera ? Color.LightGreen : Color.Pink),(IsLockCamera ? "Camera Lock":"Camera Unlock"));
 			}
 			if (ObamaCamera.SwitchFollow.JustPressed) {
@@ -496,8 +460,9 @@ namespace ObamaCamera
 					config.CameraFollow = "Player";
 				}
 				//ObamaCamera.Title(config.CameraFollow);
-				string hex = "[c/"+Color.White.Hex3()+":";
-				ObamaCamera.DisplayAwoken(hex+"Mode : "+config.CameraFollow+"]");
+				//string hex = "[c/"+Color.White.Hex3()+":";
+				ObamaCamera.DisplayAwoken("Mode : "+config.CameraFollow);
+				ObamaCamera.awokenColor = Color.White;
 				//CombatText.NewText(player.getRect(),Color.White,config.CameraFollow);
 			}
 		}
@@ -510,7 +475,17 @@ namespace ObamaCamera
 		public override void Load(TagCompound tag) {
 			biomeEncounter = tag.GetList<string>("biomeEncounter").ToList();
 		}
+		string Normalize(string names) {
+			names = names.Replace("1","");
+			names = names.Replace("2","Second");
+			names = names.Replace("3","Third");
+			names = names.Replace("4","Fourth");
+			names = Regex.Replace(names, "([A-Z])", " $1").Trim();
+			string[] baba = names.Split('_');
+			return baba[baba.Length-1];
+		}
 		bool saytheline;
+		public static string curSubworld = "";
 		public override void PostUpdate() {
 			if (config.NewBiome && ObamaCamera.titleTimer < 1) {
 				string name = "";
@@ -603,6 +578,62 @@ namespace ObamaCamera
 						color = Color.Blue;
 					}
 				}
+				meme = ModLoader.GetMod("ThoriumMod");
+				if (meme != null) {
+					if ((bool)meme.Call("GetZoneAquaticDepths",player) && !biomeEncounter.Contains("Aquatic Depths")) {
+						name = "Aquatic Depths";
+						subtitle = "The Underground Ocean";
+						color = Color.Cyan;
+					}
+				}
+				meme = ModLoader.GetMod("SubworldLibrary");
+				if (meme != null && config.SubworldName) {
+					object obj = meme.Call("Current");
+					if (obj != null) {
+						string sub = (string)obj;
+						if (sub == "StarsAbove_RuinedSpaceship" && !biomeEncounter.Contains("Ruined Spaceship")) {
+							name = "Ruined Spaceship";
+							subtitle = "The Small Ruin Ship";
+							color = Color.LightYellow;
+						}
+						if (sub == "StarsAbove_JungleTower" && !biomeEncounter.Contains("Jungle Tower")) {
+							name = "Jungle Tower";
+							subtitle = "The Tower of Plants";
+							color = Color.LightGreen;
+						}
+						//ethereal floating island and the home of the Starfarers
+						if (sub == "StarsAbove_Observatory" && !biomeEncounter.Contains("Observatory")) {
+							name = "Observatory";
+							subtitle = "The Ethereal Floating Island";
+							color = Color.Purple;
+						}
+						if (sub == "StarsAbove_SeaOfStars1" || sub == "StarsAbove_SeaOfStars2" && !biomeEncounter.Contains("Sea of Stars")) {
+							name = "Sea of Stars";
+							subtitle = "The Stars Sea";
+							color = Color.Yellow;
+						}
+						if (sub == "StarsAbove_GalacticMean" && !biomeEncounter.Contains("Galactic Mean")) {
+							name = "Galactic Mean";
+							subtitle = "The Hubworld";
+							color = Color.Purple;
+						}
+						if (sub == "StarsAbove_SamuraiWar" && !biomeEncounter.Contains("Samurai War")) {
+							name = "Samurai War";
+							subtitle = "The Samurai Land";
+							color = Color.Orange;
+						}
+						if (curSubworld != sub && player.whoAmI == Main.myPlayer) {
+							string text = Normalize(sub);
+							if (!text.Contains("The")) {text = "The "+text;}
+							ObamaCamera.DisplayAwoken(text);
+							ObamaCamera.awokenColor = Color.White;
+							curSubworld = sub;
+						}
+					}
+					else {
+						curSubworld = "";
+					}
+				}
 				if (name != "") {
 					string hex = "[c/"+color.Hex3()+":";
 					string text = player.name+$" has Discovered "+hex+name+" Biome]";
@@ -637,10 +668,10 @@ namespace ObamaCamera
 			}
 			return false;
 		}
-		public bool IsLockCamera;
-		public bool QuickLook;
+		public static bool IsLockCamera;
+		public static bool QuickLook;
 		public void CameraMod() {
-			if (!ObamaCamera.Enable) {
+			if (!ObamaCamera.Enable || MyConfig.get.DisableMod) {
 				return;
 			}
 			Vector2 centerScreen = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
@@ -653,7 +684,6 @@ namespace ObamaCamera
 				PostCameraUpdate();
 				return;
 			}
-
 			screenLock = Main.screenPosition;
 
 			bool flag1 = true;
@@ -749,25 +779,25 @@ namespace ObamaCamera
 					Main.screenPosition = Vector2.Lerp(Main.screenPosition,Main.MouseWorld - centerScreen,0.01f*(float)config.OverhaulDistance);
 				}
 			}
-			if (player.dead) {
+			if (player.dead && config.DeathCam || config.spectateNearest) {
 				Vector2 pos = player.Center ;
-				if (SourcePlayerIndex > -1) {
-					if (Main.player[SourcePlayerIndex].active) {
-						pos = Main.player[SourcePlayerIndex].Center;
-					}
-					else {SourcePlayerIndex = -1;}
-				}
-				if (SourceNPCIndex > -1) {
+				if (SourceNPCIndex > -1 && config.DeathCam) {
 					if (Main.npc[SourceNPCIndex].active) {
 						pos = Main.npc[SourceNPCIndex].Center;
 					}
 					else {SourceNPCIndex = -1;}
 				}
-				if (SourceProjectileIndex > -1) {
+				if (SourceProjectileIndex > -1 && config.DeathCam) {
 					if (Main.projectile[SourceProjectileIndex].active) {
 						pos = Main.projectile[SourceProjectileIndex].Center;
 					}
 					else {SourceProjectileIndex = -1;}
+				}
+				if (SourcePlayerIndex > -1) {
+					if (Main.player[SourcePlayerIndex].active) {
+						pos = Main.player[SourcePlayerIndex].Center;
+					}
+					else {SourcePlayerIndex = -1;}
 				}
 				pos -= centerScreen;
 				if (config.SmoothCamera) {screenCache = Vector2.Lerp(screenCache,pos,config.SmoothCameraInt);}
@@ -784,10 +814,16 @@ namespace ObamaCamera
 				Main.screenPosition = screenCache;
 				if (flag1){
 					screenCache = Vector2.Lerp(screenCache,player.Center - centerScreen,config.SmoothCameraInt);
+					if (config.velocityBased) {
+						screenCache = Vector2.Lerp(screenCache,player.Center + (player.velocity*2f) - centerScreen,config.SmoothCameraInt);	
+					}
 					if (config.QuickSmooth && Vector2.Distance(screenCache,player.Center - centerScreen) > 1500f) {
 						screenCache = player.Center - centerScreen;
 					}
 				}
+			}
+			else if (flag1 && config.velocityBased){
+				Main.screenPosition += (player.velocity*2f);
 			}
 			PostCameraUpdate();
 		}
@@ -812,12 +848,13 @@ namespace ObamaCamera
 			}
 		}
 	}
-	public class TitleData
+	public struct TitleData
 	{
 		public int type;
 		public string text;
 		public string subtext;
 		public Texture2D texture;
+
 		public TitleData(int type,string text,string subtext, Texture2D texture) {
 			this.type = type;
 			this.text = text;
@@ -878,11 +915,11 @@ namespace ObamaCamera
 				}
 				else if (call == "AddShake") {
 					int shake = Convert.ToInt32(args[1]);
-					Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake += shake;
+					Bebeq.camerashake += shake;
 				}
 				else if (call == "SetShake") {
 					int shake = Convert.ToInt32(args[1]);
-					Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake = shake;
+					Bebeq.camerashake = shake;
 				}
 				else if (call == "GetCameraStyle") {return MyConfig.get.CameraFollow;}
 				else if (call == "SetCameraStyle") {
@@ -934,7 +971,7 @@ namespace ObamaCamera
 			}
 			return false;
 		}
-		string CutOff(string name) {
+		public static string CutOff(string name) {
 			string names = name;
 			names = names.Replace("Music","");
 			names = names.Replace("music","");
@@ -956,8 +993,58 @@ namespace ObamaCamera
 			names = Regex.Replace(names, "([A-Z])", " $1").Trim();
 			return names;
 		}
+		void AddTitle(Mod mod,string type,string name,string subtitle) {
+			int num = mod.NPCType(type);
+			if (num <= 1) {
+				Logger.InfoFormat($"{Name} Error loading {type} from {mod.Name}");
+				return;
+			}
+			ObamaCamera.titleData.Add(new TitleData(num,name,subtitle,null));
+		}
+		public override void PostSetupContent() {
+			Logger.InfoFormat($"{Name} Manualy Loading title data");
+			var meme = ModLoader.GetMod("ThoriumMod");
+			if (meme != null) {
+				AddTitle(meme,"Viscount","","The Draculist Bat");
+				AddTitle(meme,"FallenDeathBeholder","Coznix","The Fallen Beholder");
+				AddTitle(meme,"BoreanStrider","","The Snowy Strider");
+				AddTitle(meme,"TheBuriedWarrior","","The Warrior of Greeks");
+				AddTitle(meme,"Abyssion","Abyssion","The Forgotten One");
+				AddTitle(meme,"Lich","","The Life Taker");
+				AddTitle(meme,"QueenJelly","","The Queen Of Evil Jelly");
+				AddTitle(meme,"ThePrimeScouter","","The Invader Scouter");
+				AddTitle(meme,"TheGrandThunderBirdv2","","The Bird Of Thunder");
+				AddTitle(meme,"RealityBreaker","","The Reality Breaker");
+			}
+			meme = ModLoader.GetMod("Split");
+			if (meme != null) {
+				AddTitle(meme,"CommandoBoss","","The Invader Commando");
+				AddTitle(meme,"Insurgent","","The Troller");
+				AddTitle(meme,"Menace","","The Funny Cloud");
+				AddTitle(meme,"Mirage","","The Epic Witch");
+				AddTitle(meme,"OneShot","","The Aimboter");
+				AddTitle(meme,"Paraffin","","The Candle Clown");
+				AddTitle(meme,"Seth","","The Knight");
+				AddTitle(meme,"TheSpirit","","The Spirited Woman");
+			}
+			meme = ModLoader.GetMod("StarsAbove");
+			if (meme != null) {
+				AddTitle(meme,"Arbitration","","The Amalgamation of Order and Chaos");
+				AddTitle(meme,"Nalhaun","Nalhaun","The Burnished King");
+				AddTitle(meme,"Penthesilea","Penthesilea","The Witch of Ink");
+				AddTitle(meme,"Tsukiyomi","Tsukiyomi","The First Starfarer");
+				AddTitle(meme,"Tsukiyomi2","Tsukiyomi","The First Starfarer");
+				AddTitle(meme,"VagrantOfSpaceAndTime","","The Ruler of Space And Time");
+				AddTitle(meme,"WarriorOfLight","","The Everlasting Light");
+			}
+			Logger.InfoFormat($"{Name} Done !");
+		}
 		public override void PostAddRecipes() {
 		//public override void PostSetupContent() {
+			var addedMus = new List<int>();
+
+			musList.Add(new MusicRegister(GetSoundSlot(Terraria.ModLoader.SoundType.Music, "Sounds/Music/SpaceBoyfriend"),"Space Boyfriends Tape","Jami Lynne"));
+			addedMus.Add(GetSoundSlot(Terraria.ModLoader.SoundType.Music, "Sounds/Music/SpaceBoyfriend"));
 
 			FieldInfo field = typeof(SoundLoader).GetField("musicToItem", BindingFlags.NonPublic | BindingFlags.Static);
  			IDictionary<int, int> musicToItem = (IDictionary<int, int>)field.GetValue(typeof(SoundLoader));
@@ -980,9 +1067,32 @@ namespace ObamaCamera
 					Logger.InfoFormat($"{Name} failed getting name [{i.type}] [{i.modItem.Name}] , setting up internal name");
 					names = CutOff(i.modItem.Name);
 				}
+				addedMus.Add(item.Key);
 				musList.Add(new MusicRegister(item.Key,names,composer));
 				//Logger.InfoFormat($"{Name} [{names}] succesfuly registered");
 			}
+			Logger.InfoFormat($"{Name} done !");
+
+			Logger.InfoFormat($"{Name} start manually add music names from their files");
+			foreach (Mod item in ModLoader.Mods){
+				FieldInfo field2 = typeof(Mod).GetField("musics", BindingFlags.NonPublic | BindingFlags.Instance);
+				var musics = (IDictionary<string, Terraria.ModLoader.Audio.Music>) field2.GetValue(item);
+				foreach (var mus in musics){
+					int id = item.GetSoundSlot(Terraria.ModLoader.SoundType.Music, mus.Key);
+					if (!addedMus.Contains(id)) {
+						string[] path = mus.Key.Split('/');
+						string names = path[path.Length-1];
+						names = CutOff(names);
+						string composer = item.DisplayName;
+						musList.Add(new MusicRegister(id,names,composer));
+						Logger.InfoFormat($"{Name} registering [{mus.Key}] [{id}] [{composer}]");
+					}
+				}
+			}
+			Logger.InfoFormat($"{Name} done !");
+
+			Logger.InfoFormat($"{Name} sorting musics");
+			musList.Sort((n, t) => n.music > t.music ? 1 : -1);
 			Logger.InfoFormat($"{Name} done !");
 			/*
 			for (int i = 0; i < musicToItem.Count; i++){
@@ -1041,7 +1151,6 @@ namespace ObamaCamera
 			title2D = null;
 			titleColor = Color.White;
 		}
-		
 		public static int titleTimer;
 		public static Color titleColor;
 		static Texture2D title2D;
@@ -1050,6 +1159,7 @@ namespace ObamaCamera
 
 		static string awoken;
 		static int awokenTime;
+		public static Color awokenColor;
 
 		static string nameMusic;
 		public static int nameMusicTime;
@@ -1075,63 +1185,103 @@ namespace ObamaCamera
 		}
 		public static void ShowMusic() {
 			string text = "Unknown";
-			// idk i never liked switch case
-			if (curMus == 1) {text = "Overworld Day";}
-			else if (curMus == 2) {text = "Eerie";}
-			else if (curMus == 3) {text = "Night";}
-			else if (curMus == 4) {text = "Underground";}
-			else if (curMus == 5) {text = "Boss 1";}
-			else if (curMus == 6) {text = "Title";}
-			else if (curMus == 7) {text = "Jungle";}
-			else if (curMus == 8) {text = "Corruption";}
-			else if (curMus == 9) {text = "The Hallow";}
-			else if (curMus == 10) {text = "Underground Corruption";}
-			else if (curMus == 11) {text = "Underground Hallow";}
-			else if (curMus == 12) {text = "Boss 2";}
-			else if (curMus == 13) {text = "Boss 3";}
-			else if (curMus == 14) {text = "Snow";}
-			else if (curMus == 15) {text = "Space";}
-			else if (curMus == 16) {text = "Crimson";}
-			else if (curMus == 17) {text = "Boss 4";}
-			else if (curMus == 18) {text = "Alt Overworld Day";}
-			else if (curMus == 19) {text = "Rain";}
-			else if (curMus == 20) {text = "Ice";}
-			else if (curMus == 21) {text = "Desert";}
-			else if (curMus == 22) {text = "Ocean";}
-			else if (curMus == 23) {text = "Dungeon";}
-			else if (curMus == 24) {text = "Plantera";}
-			else if (curMus == 25) {text = "Boss5";}
-			else if (curMus == 26) {text = "Temple";}
-			else if (curMus == 27) {text = "Eclipse";}
-			//else if (curMus == 28) {text = "Rain Sound Effect";}
-			else if (curMus == 29) {text = "Mushrooms";}
-			else if (curMus == 30) {text = "Pumpkin Moon";}
-			else if (curMus == 31) {text = "Alt Underground";}
-			else if (curMus == 32) {text = "FrostMoon";}
-			else if (curMus == 33) {text = "Underground Crimson";}
-			else if (curMus == 34) {text = "The Towers";}
-			else if (curMus == 35) {text = "Pirate Invasion";}
-			else if (curMus == 36) {text = "Hell";}
-			else if (curMus == 37) {text = "Martian Madness";}
-			else if (curMus == 38) {text = "Lunar Boss";}
-			else if (curMus == 39) {text = "Goblin Invasion";}
-			else if (curMus == 40) {text = "Sandstorm";}
-			else if (curMus == 41) {text = "Old Ones Army";}
+			if (curMus < 42) {
+				text = ShowMusicVanilla(curMus);
+			}
 			text += " Theme";
-			text += "\nby Scott Lloyd Shelly";
+			Mod mod = ModLoader.GetMod("TerrariaOverhaul");
+			if (mod != null) {
+
+				// reflection terror :skull:
+				// i hate how overhaul has a nested class inside a nested class
+
+				Type OConfigtype = mod.GetType().Assembly.GetType("TerrariaOverhaul.Core.Systems.Config.OConfig");
+
+				Type ClientsideConfig = OConfigtype.GetNestedType("ClientsideConfig",BindingFlags.Public);
+				Type AudioConfig = ClientsideConfig.GetNestedType("AudioConfig",BindingFlags.Public);
+				Type MusicConfig = AudioConfig.GetNestedType("MusicConfig",BindingFlags.Public);
+
+				Type type = mod.GetType().Assembly.GetType("TerrariaOverhaul.Core.Systems.Config.ConfigSystem");
+				FieldInfo field = type.GetField("local", BindingFlags.Public | BindingFlags.Static);
+				FieldInfo theoneandtheonly = MusicConfig.GetField("enableMusicRemixes", BindingFlags.Public | BindingFlags.Instance);
+
+				object local = field.GetValue(null);
+				object clientside = OConfigtype.GetField("Clientside").GetValue(local);
+				object audio = ClientsideConfig.GetField("Audio").GetValue(clientside);
+				object music = AudioConfig.GetField("Music").GetValue(audio);
+
+				bool isMusicRemix = (bool)theoneandtheonly.GetValue(music);
+
+				if (isMusicRemix) {
+					text += " Remix";
+					text += "\nby Kirby Rocket";
+				}
+				else {
+					text += "\nby Scott Lloyd Shelly";
+				}
+				//TerrariaOverhaul.Core.Systems.Config.ConfigSystem.local.Clientside.Audio.Music.enableMusicRemixes
+			}
+			else {
+				text += "\nby Scott Lloyd Shelly";
+			}
 			foreach (var music in musList){
 				//Main.NewText("cur mus = "+curMus+" / "+music.music);
 				if (curMus == music.music) {
 					text = music.name+"\n by "+music.composer;
 				}
 			}
-			if (text == "Unknown") {return;}
+			if (text == "Unknown Theme") {return;}
 			nameMusic = text;
 			nameMusicTime = 240;
 		}
 		public static void DisplayAwoken(string text) {
 			awoken = text;
 			awokenTime = 240;
+			awokenColor = new Color(175, 75, 255);
+		}
+		public static string ShowMusicVanilla(int num) {
+			if (num == 1) {return "Overworld Day";}
+			else if (num == 2) {return "Eerie";}
+			else if (num == 3) {return "Night";}
+			else if (num == 4) {return "Underground";}
+			else if (num == 5) {return "Boss 1";}
+			else if (num == 6) {return "Title";}
+			else if (num == 7) {return "Jungle";}
+			else if (num == 8) {return "Corruption";}
+			else if (num == 9) {return "The Hallow";}
+			else if (num == 10) {return "Underground Corruption";}
+			else if (num == 11) {return "Underground Hallow";}
+			else if (num == 12) {return "Boss 2";}
+			else if (num == 13) {return "Boss 3";}
+			else if (num == 14) {return "Snow";}
+			else if (num == 15) {return "Space";}
+			else if (num == 16) {return "Crimson";}
+			else if (num == 17) {return "Boss 4";}
+			else if (num == 18) {return "Alt Overworld Day";}
+			else if (num == 19) {return "Rain";}
+			else if (num == 20) {return "Ice";}
+			else if (num == 21) {return "Desert";}
+			else if (num == 22) {return "Ocean";}
+			else if (num == 23) {return "Dungeon";}
+			else if (num == 24) {return "Plantera";}
+			else if (num == 25) {return "Boss 5";}
+			else if (num == 26) {return "Temple";}
+			else if (num == 27) {return "Eclipse";}
+			//else if (num == 28) {return "Rain Sound Effect";}
+			else if (num == 29) {return "Mushrooms";}
+			else if (num == 30) {return "Pumpkin Moon";}
+			else if (num == 31) {return "Alt Underground";}
+			else if (num == 32) {return "FrostMoon";}
+			else if (num == 33) {return "Underground Crimson";}
+			else if (num == 34) {return "The Towers";}
+			else if (num == 35) {return "Pirate Invasion";}
+			else if (num == 36) {return "Hell";}
+			else if (num == 37) {return "Martian Madness";}
+			else if (num == 38) {return "Lunar Boss";}
+			else if (num == 39) {return "Goblin Invasion";}
+			else if (num == 40) {return "Sandstorm";}
+			else if (num == 41) {return "Old Ones Army";}
+			return "Unknown";
 		}
 		static int MusicToItemVanilla(int mus) {
 			if (mus == 1) {return ItemID.MusicBoxOverworldDay;}
@@ -1205,14 +1355,30 @@ namespace ObamaCamera
 					alpha = (num/max);
 				}
 				if (awoken == "") {return;}
-				TextSnippet[] snippets = ChatManager.ParseMessage(awoken, (new Color(175, 75, 255)*alpha)).ToArray();
+				string text = awoken;
+				TextSnippet[] snippets = ChatManager.ParseMessage(text, (awokenColor*alpha)).ToArray();
 				Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
 				Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 				pos = pos.Floor();
 				pos.Y += Main.screenHeight/4f;
 				pos.Y += Main.screenHeight/8f;
 				//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
-				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, new Vector2(messageSize.X / 2f,messageSize.Y / 2f), new Vector2(0.5f,0.5f), out int hover);
+				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out int hover);
+				/*
+				string[] lines = awoken.Split('\n');
+				float offset = 0;
+				foreach (var text in lines){
+					TextSnippet[] snippets = ChatManager.ParseMessage(text, (new Color(175, 75, 255)*alpha)).ToArray();
+					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+					pos = pos.Floor();
+					pos.Y += Main.screenHeight/4f;
+					pos.Y += Main.screenHeight/8f;
+					pos.Y += offset;
+					//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
+					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out int hover);
+					offset = messageSize.Y;
+				}*/
 			}
 		}
 		static void DrawTitle(SpriteBatch spriteBatch) {
@@ -1266,7 +1432,37 @@ namespace ObamaCamera
 					alpha = (num/max);
 				}
 				if (nameMusic == "") {return;}
-				TextSnippet[] snippets = ChatManager.ParseMessage(nameMusic, (Color.White*alpha)).ToArray();
+				List<TextSnippet> snippetList = ChatManager.ParseMessage(nameMusic, (Color.White*alpha));
+				string funni = "";
+				foreach (TextSnippet i in snippetList){
+					/*
+
+					Reflection reduced to atom
+
+					Type itype = i.GetType();
+					Type type1 = typeof(Mod).Assembly.GetType("Terraria.GameContent.UI.Chat.ItemTagHandler");
+					Type type = type1.GetNestedType("ItemSnippet",BindingFlags.NonPublic | BindingFlags.Public);
+					//both of those return null
+					if (type == null) {
+						Main.NewText("type ded");
+						return;
+					}
+					if (!itype.IsSubclassOf(type)) {
+						funni += i.Text;
+					}
+					*/
+					if (!i.TextOriginal.Contains("[i")) {
+						funni += i.Text;
+					}
+					/*
+					Vector2 pes = new Vector2(Main.screenWidth/2f,Main.screenHeight/2f);
+					pes.Y += a;
+					DynamicSpriteFontExtensionMethods.DrawString(spriteBatch, Main.fontMouseText, i.TextOriginal, pes, Color.White);
+					//i.Text
+					a += 20;
+					*/
+				}
+				TextSnippet[] snippets = ChatManager.ParseMessage(funni, (Color.White*alpha)).ToArray();
 				Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
 				Vector2 pos = new Vector2(Main.screenWidth,Main.screenHeight);
 				pos.Y -= messageSize.Y/4f;
@@ -1274,25 +1470,89 @@ namespace ObamaCamera
 				pos = pos.Floor();
 				int mus = MusicToItem(curMus);
 				Texture2D texture = Main.itemTexture[mus];
-				spriteBatch.Draw(texture, pos - new Vector2(messageSize.X/4f + texture.Width,0), null, Color.White*alpha, 0f, texture.Size()/2f, 1f, SpriteEffects.None, 0f);
+				spriteBatch.Draw(texture, pos - new Vector2(messageSize.X/4f + texture.Width,0) + MyConfig.get.musicNameOffset, null, Color.White*alpha, 0f, texture.Size()/2f, 1f, SpriteEffects.None, 0f);
 				//Utils.DrawBorderString(spriteBatch,$"[i:{mus}]",pos - new Vector2(messageSize.X*1.5f,0),Color.White*alpha);
-				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, new Vector2(messageSize.X / 2f,messageSize.Y / 2f), new Vector2(0.5f,0.5f), out int hover);
+				//pos -= messageSize/4f;
+				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos + MyConfig.get.musicNameOffset, 0f, messageSize/2f, new Vector2(0.5f,0.5f), out int hover);
 			}
 		}
 		public override void PostDrawInterface(SpriteBatch spriteBatch) {
+			if (MyConfig.get.musicNameMove) {
+
+				nameMusic = "Space Boyfriends Tape\nBy Jami Lynne";
+				nameMusicTime = 210;
+
+				if (Main.keyState.IsKeyDown(Keys.Right)) {
+					MyConfig.get.musicNameOffset.X += 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Left)) {
+					MyConfig.get.musicNameOffset.X -= 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Up)) {
+					MyConfig.get.musicNameOffset.Y -= 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Down)) {
+					MyConfig.get.musicNameOffset.Y += 4;
+					MyConfig.SaveConfig();
+				}
+			}
 			DrawAwoken(spriteBatch);
 			DrawTitle(spriteBatch);
 			DrawMusic(spriteBatch);
 		}
+		public static int MusicPlay = -1;
+		public ushort MusicFadeTimerSpecifyForTerrariaOverhaul;
 		public override void UpdateUI(GameTime gameTime) {
 			//Main.musicFade[curMus] > 0f
 			if (MyConfig.get.musicName && !Main.gameMenu) {
-				if (curMus != Main.curMusic && Main.curMusic > 0 && Main.musicFade[Main.curMusic] >= 1f) {
-					curMus = Main.curMusic;
-					ShowMusic();
+				//Main.NewText("fade : "+Main.musicFade[Main.curMusic]+" new mus : "+Main.instance.newMusic+" musicmode : "+curMus+" curMus :"+Main.curMusic);
+
+				//terraria overhaul frick up my method :bruh:
+				Mod mod = ModLoader.GetMod("TerrariaOverhaul");
+				if (MyConfig.get.musicNameTimer || mod != null) {
+					if (curMus != Main.curMusic && Main.curMusic > 0) {
+						MusicFadeTimerSpecifyForTerrariaOverhaul++;
+						if (MusicFadeTimerSpecifyForTerrariaOverhaul >= 60*3) {
+							curMus = Main.curMusic;
+							ShowMusic();
+							MusicFadeTimerSpecifyForTerrariaOverhaul = 0;
+						}
+					}	
+				}
+				else {
+					if (curMus != Main.curMusic && Main.curMusic > 0 && Main.musicFade[Main.curMusic] >= 1f) {
+						curMus = Main.curMusic;
+						ShowMusic();
+					}
 				}
 			}
 		}
+		public override void UpdateMusic(ref int music, ref MusicPriority priority) {
+			if (Main.gameMenu) {return;}
+			if (ObamaCamera.MusicPlay > 0) {
+				music = ObamaCamera.MusicPlay;
+				priority = MusicPriority.BossHigh + 3;
+			}
+			if (MyConfig.get.musicNameMove) {
+				music = GetSoundSlot(Terraria.ModLoader.SoundType.Music, "Sounds/Music/SpaceBoyfriend");
+				priority = MusicPriority.BossHigh + 4;
+			}
+		}
+		public override void Close() {
+			if (MyConfig.get.musicReload && musList != null && musList.Count > 0) {
+				foreach (var item in musList){
+					int TitleMusic = item.music;
+					if (Main.music.IndexInRange(TitleMusic) && (Main.music[TitleMusic]?.IsPlaying ?? false)){
+						Main.music[TitleMusic].Stop(AudioStopOptions.Immediate);
+					}
+				}
+			}
+			base.Close();
+		}
+		//ObamaCamera.MusicPlay
 
 		// net code moment
 		//public override void HandlePacket(BinaryReader reader, int whoAmI) {}
@@ -1300,6 +1560,10 @@ namespace ObamaCamera
 	[Label("Obama Camera")]
 	public class MyConfig : ModConfig
 	{
+		public static void SaveConfig(){
+			typeof(ConfigManager).GetMethod("Save", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[1] { get });
+		}
+
 		public override ConfigScope Mode => ConfigScope.ClientSide;
 		// public override ConfigScope Mode => ConfigScope.ServerSide;
 		public static MyConfig get => ModContent.GetInstance<MyConfig>();
@@ -1319,6 +1583,11 @@ namespace ObamaCamera
 		[DrawTicks]
 		[Slider] 
 		public float SmoothCameraInt;
+
+		[Label("Spectate nearest player")]
+		[Tooltip("Spectate nearest player when you died, this will be more prioritized than Death Cam")]
+		[DefaultValue(false)]
+		public bool spectateNearest;
 
 		[Label("Death cam")]
 		[Tooltip("Allow you to see what kill you")]
@@ -1419,12 +1688,31 @@ namespace ObamaCamera
 		[Label("Screen Shake Intensity")]
 		[Tooltip("the intensity of the screenshake \n [default is 4]")]
 		[Range(0, 20)]
-		[Increment(2)]
+		[Increment(1)]
 		[DefaultValue(4)]
 		[Slider] 
-		[DrawTicks]
 		public int ShakeInt;
-		
+
+		[Header("Display Music")]
+
+		[Label("Display music name")]
+		[Tooltip("Display the name of currently played song in the right corner of the screen\n[enabled by default]")]
+		[DefaultValue(true)]
+		public bool musicName;
+
+		[Label("Display music name custom timer")]
+		[Tooltip("uses custom timer when displaying music name\n[enabled if terraria overhaul is active]")]
+		[DefaultValue(false)]
+		public bool musicNameTimer;
+
+		[Label("Display music name move")]
+		[Tooltip("Use arrows key to move the bar")]
+		[DefaultValue(false)]
+		public bool musicNameMove;
+
+		[Label("Display music name offset position")]
+		[Tooltip("The offset of Display music name ui")]
+		public Vector2 musicNameOffset = Vector2.Zero;
 
 		[Header("Experimental and Funny Stuff")]
 
@@ -1434,14 +1722,14 @@ namespace ObamaCamera
 		public bool multipleSoundCheck;
 
 		[Label("Display boss awoken")]
-		[Tooltip("Display a text at the bottom of the screen if any boss is awoken")]
+		[Tooltip("Display a text at the bottom of the screen if boss awokened instead of in the chat")]
 		[DefaultValue(false)]
 		public bool awokenDisplay;
 
-		[Label("Display music name")]
-		[Tooltip("Display the name of currently played song in the right corner of the screen\n[enabled by default]")]
+		[Label("Display Subworld Name")]
+		[Tooltip("Display a subworld name upon entering one\nfor subworldlib mod")]
 		[DefaultValue(true)]
-		public bool musicName;
+		public bool SubworldName;
 		
 		[Label("Biome Title")]
 		[Tooltip("Display biome name and the description when discovering a new biome\nsupports calamity biome !")]
@@ -1475,18 +1763,133 @@ namespace ObamaCamera
 		[DefaultValue(false)]
 		public bool AhShit;
 
+		[Label("Music Reload Fix")]
+		[Tooltip("Fixes some issue with music unloading\nSometimes doesnt work due to funny code")]
+		[DefaultValue(false)]
+		public bool musicReload;
+
 		[Label("Simulate what most Linux users see")]
 		[Tooltip("yes")]
 		[DefaultValue(false)]
 		public bool DemonBanner;
-		/*
+
+		[Label("Velocity based camera")]
+		[Tooltip("Player camera also affected by player velocity")]
+		[DefaultValue(false)]
+		public bool velocityBased;
+
+		[Label("Disable camera related feature")]
+		[Tooltip("disable every camera related feature\nfor people that only like other feature in this mod")]
+		[DefaultValue(false)]
+		public bool DisableMod;
+
+		[Label("Password")]
+		[Tooltip("put something funny in here, idk")]
+		[DefaultValue("Amogus")]
+		public string Password;
+
 		public override void OnChanged() {
-			if (ResetBiome && !Main.gameMenu) {
+			if (Password == "BiomeEncounter" && !Main.gameMenu) {
+				Main.NewText("Biome encounter reseted");
 				Main.LocalPlayer.GetModPlayer<Bebeq>().biomeEncounter = new List<string>();
+				Password = "Done";
+			}
+			if (Password == "BossIntro" && !Main.gameMenu) {
+				Main.NewText("Boss intro reseted");
+				ObamaCamera.bossEncounter = new List<int>();
+				Password = "Done";
+			}
+			if (Password == "AmongAss" && !Main.gameMenu) {
+				for (int i = 0; i < 25; i++){
+					Main.NewText("Among Ass");
+				}
+				Password = "SUS";
 			}
 		}
-		*/
 
+	}
+	//int.TryParse(text, out var result)
+	public class ObamaUndiscover : ModCommand
+	{
+		public override CommandType Type
+			=> CommandType.Chat;
+
+		public override string Command
+			=> "undiscoverall";
+
+		public override string Usage
+			=> "/undiscoverall";
+
+		public override string Description
+			=> "undiscover all already discovered biome";
+
+		public override void Action(CommandCaller caller, string input, string[] args) {
+			caller.Player.GetModPlayer<Bebeq>().biomeEncounter = new List<string>();
+			caller.Reply("succesfully undiscovered");
+		}
+	}
+	public class ObamaMusicPlay : ModCommand
+	{
+		public override CommandType Type
+			=> CommandType.Chat;
+
+		public override string Command
+			=> "MusicPlay";
+
+		public override string Usage
+			=> "/MusicPlay <id>";
+
+		public override string Description
+			=> "play a music , set to -1 or 0 to disable";
+
+		public override void Action(CommandCaller caller, string input, string[] args) {
+			if (args.Length == 0) {
+				caller.Reply($"Currently played music {ObamaCamera.MusicPlay}");
+				return;
+			}
+			if (int.TryParse(args[0], out var result)) {
+				if (result < 1) {
+					ObamaCamera.MusicPlay = -1;
+					return;
+				}
+				if (result > ObamaCamera.musList[ObamaCamera.musList.Count - 1].music) {
+					caller.Reply($"ID out of bounds [ {result} ]",Color.Red);
+					return;
+				}
+				ObamaCamera.MusicPlay = result;
+				caller.Reply($"Played music {result}");
+			}
+			else {
+				caller.Reply($"Currently played music {ObamaCamera.MusicPlay}");
+			}
+		}
+	}
+	public class ObamaMusicList : ModCommand
+	{
+		public override CommandType Type
+			=> CommandType.Chat;
+
+		public override string Command
+			=> "MusicList";
+
+		public override string Usage
+			=> "/MusicList";
+
+		public override string Description
+			=> "Display list of musics";
+
+		public override void Action(CommandCaller caller, string input, string[] args) {
+			caller.Reply("======= List of Music =========");
+			for (int i = 1; i < 42; i++)
+			{
+				string text = ObamaCamera.ShowMusicVanilla(i);
+				caller.Reply($"[ {i} ] {text} by Scott Lloyd Shelly");
+			}
+			foreach (var item in ObamaCamera.musList){
+				caller.Reply($"[ {item.music} ] {item.name} by {item.composer}");
+			}
+			caller.Reply("===============================");
+		}
 	}
 	public class ObamaTitle : ModCommand
 	{
@@ -1566,10 +1969,10 @@ namespace ObamaCamera
 			}
 			if (num > 0) {
 				if (MyConfig.get.ShakeLimit) {
-					Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake += num;
+					Bebeq.camerashake += num;
 				}
 				else {
-					Main.LocalPlayer.GetModPlayer<Bebeq>().camerashake = num;
+					Bebeq.camerashake = num;
 				}
 			}
 		}
@@ -1606,14 +2009,23 @@ namespace ObamaCamera
 			return orig(type, x, y, Style,  volumeScale, pitchOffset);
 		}
 		static void NewTextPatch(On.Terraria.Main.orig_NewText_string_byte_byte_byte_bool orig, string newText, byte R, byte G, byte B, bool force) {
+			if (PreventNewText) {
+				PreventNewText = false;
+				return;
+			}
 			orig(newText, R, G, B, force);
 			if (MyConfig.get.TextToCombatText) {
 				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
 			}
 		}
+		public static bool PreventNewText = false;
 		static void SpawnOnPlayerPatch(On.Terraria.NPC.orig_SpawnOnPlayer orig,int plr, int type) {
+			if (MyConfig.get.awokenDisplay) {
+				PreventNewText = true;
+			}
 			orig(plr,type);
 			if (MyConfig.get.awokenDisplay) {
+				PreventNewText = true;
 				NPC npc = new NPC();
 				npc.SetDefaults(type);
 				ObamaCamera.DisplayAwoken(Language.GetTextValue("Announcement.HasAwoken", npc.TypeName));
@@ -1622,9 +2034,9 @@ namespace ObamaCamera
 		static void TilePatch(On.Terraria.Player.orig_PickTile orig,Player self,int x, int y, int pickPower)
 		{
 			if (self.whoAmI == Main.myPlayer) {
-				self.GetModPlayer<Bebeq>().pickX = x;
-				self.GetModPlayer<Bebeq>().pickY = y;
-				self.GetModPlayer<Bebeq>().pickPower = pickPower;
+				Bebeq.pickX = x;
+				Bebeq.pickY = y;
+				Bebeq.pickPower = pickPower;
 			}
 			orig(self,x,y,pickPower);
 		}
