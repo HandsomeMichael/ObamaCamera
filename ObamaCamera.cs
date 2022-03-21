@@ -694,11 +694,15 @@ namespace ObamaCamera
 			if (QuickLook) {
 				type = "Boss Only 2";
 			}
+			ObamaCamera.ILEditReplacement.TypeEdit(ref type);
 			if (!player.dead && type != "Player") {
 				int index = -1;
 				float speed = 0.05f;
 				Vector2 targetCenter = player.Center;
 				for (int i = 0; i < Main.maxNPCs; i++) {
+					if (!ObamaCamera.ILEditReplacement.LoopEdit(ref index)) {
+						break;
+					}
 					NPC npc = Main.npc[i];
 					float between = Vector2.Distance(npc.Center, player.Center);
 					bool closest = Vector2.Distance(player.Center, targetCenter) > between;
@@ -731,21 +735,22 @@ namespace ObamaCamera
 						targetCenter = npc.Center;
 					}
 				}
+				ObamaCamera.ILEditReplacement.IndexEdit(ref index);
 				if (index > -1) {
 					NPC npc = Main.npc[index];
 					if (type == "Enemy and Player") {type = "Boss and Player";}
 					if (type == "Boss Only 2") {type = "Boss only";}
 					if (type == "Boss and Player") {
 						if (config.SmoothCamera){
-							Vector2 pos = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);
+							Vector2 pos = Vector2.Lerp(Main.screenPosition,npc.Center + (MyConfig.get.velocityBased ? npc.velocity*2 : Vector2.Zero),0.05f);
 							screenCache = Vector2.Lerp(screenCache,pos,config.SmoothCameraInt);
 						}
-						else {Main.screenPosition = Vector2.Lerp(Main.screenPosition,npc.Center,0.05f);}
+						else {Main.screenPosition = Vector2.Lerp(Main.screenPosition,npc.Center + (MyConfig.get.velocityBased ? npc.velocity*2 : Vector2.Zero),0.05f);}
 						flag1 = false;
 					}
 					else {
 						if (config.SmoothCamera){
-							screenCache = Vector2.Lerp(screenCache,npc.Center - centerScreen,speed);
+							screenCache = Vector2.Lerp(screenCache,npc.Center + (MyConfig.get.velocityBased ? npc.velocity*2 : Vector2.Zero) - centerScreen,speed);
 						}
 						else {Main.screenPosition = npc.Center - centerScreen;}
 						flag1 = false;
@@ -771,15 +776,17 @@ namespace ObamaCamera
 					else {Main.screenPosition = targetCenter - centerScreen;}
 				}
 			}
-			if (type != "Boss only" && config.OverhaulMouse && Main.hasFocus && !Main.playerInventory && player.talkNPC < 0) {
-				if (config.SmoothCamera ) {
-					screenCache = Vector2.Lerp(screenCache,Main.MouseWorld - centerScreen,0.01f*(float)config.OverhaulDistance);
+			var list = new List<int>() {ItemID.Binoculars,ItemID.SniperRifle,1254};
+			bool hasScope = list.Contains(player.HeldItem.type) || player.scope;
+			if (type != "Boss only" && (hasScope || config.OverhaulMouse) && Main.hasFocus && !Main.playerInventory && player.talkNPC < 0) {
+				if (config.SmoothCamera) {
+					screenCache = Vector2.Lerp(screenCache,Main.MouseWorld - centerScreen,(0.01f*(float)config.OverhaulDistance)*(hasScope && Main.mouseRight ? 2 : 1));
 				}
 				else {
 					Main.screenPosition = Vector2.Lerp(Main.screenPosition,Main.MouseWorld - centerScreen,0.01f*(float)config.OverhaulDistance);
 				}
 			}
-			if (player.dead && config.DeathCam || config.spectateNearest) {
+			if (player.dead && (config.DeathCam || config.spectateNearest)) {
 				Vector2 pos = player.Center ;
 				if (SourceNPCIndex > -1 && config.DeathCam) {
 					if (Main.npc[SourceNPCIndex].active) {
@@ -828,7 +835,7 @@ namespace ObamaCamera
 			PostCameraUpdate();
 		}
 		void PostCameraUpdate() {
-			if (ObamaCamera.titleTimer < 1) {
+			if (ObamaCamera.titleTimer < 1 && !ObamaCamera.NPCAlwaysFocus) {
 				ObamaCamera.NPCFocus = -1;
 				ObamaCamera.ResetTitle();
 			}
@@ -862,6 +869,54 @@ namespace ObamaCamera
 			this.texture = texture;
 		}
 	}
+	// as the title says. its a replacement for IL editing this mod
+	public class ILEditReplacement
+	{
+		public List<Func<int>> indexModifier;
+		public List<Func<string>> typeModifier;
+		public List<KeyValuePair<Func<int>,Func<bool>>> loopModifier;
+
+		public void Add(Func<int> func) => indexModifier.Add(func);
+		public void Add(Func<string> func) => typeModifier.Add(func);
+		public void Add(Func<int> func1,Func<bool> func2) => loopModifier.Add(new KeyValuePair<Func<int>,Func<bool>>(func1,func2));
+
+		public void Load() {
+			indexModifier = new List<Func<int>>();
+			indexModifier.Add((Func<int>)(() => -2));
+			typeModifier = new List<Func<string>>();
+			typeModifier.Add((Func<string>)(() => "None"));
+			loopModifier = new List<KeyValuePair<Func<int>,Func<bool>>>();
+			Add((Func<int>)(() => -2),(Func<bool>)(() => true));
+		}
+		public void IndexEdit(ref int index) {
+			if (indexModifier != null && indexModifier.Count > 0) {
+				foreach (Func<int> item in indexModifier){
+					int b = item();
+					if (b != -2) {index = b;}
+				}
+			}
+		}
+		public bool LoopEdit(ref int index) {
+			if (loopModifier != null && loopModifier.Count > 0) {
+				foreach (var item in loopModifier){
+					var method = item.Key;
+					int b = method();
+					if (b != -2) {index = b;}
+					var method2 = item.Value;
+					if (!method2()) {return false;}
+				}
+			}
+			return true;
+		}
+		public void TypeEdit(ref string type) {
+			if (typeModifier != null && typeModifier.Count > 0) {
+				foreach (var item in typeModifier){
+					string b = item();
+					if (b != "None") {type = b;}
+				}
+			}
+		}
+	}
 	public class ObamaCamera : Mod
 	{
 		public struct MusicRegister{
@@ -881,8 +936,10 @@ namespace ObamaCamera
 		public static List<MusicRegister> musList = new List<MusicRegister>();
 		public static List<TitleData> titleData = new List<TitleData>();
 		public static List<int> bossEncounter = new List<int>();
+		public static ILEditReplacement ILEditReplacement;
 		public static bool Moonlord;
 		public static int NPCFocus = -1;
+		public static bool NPCAlwaysFocus = false;
 		public static bool Enable;
 
 		public override object Call(params object[] args) {
@@ -946,6 +1003,15 @@ namespace ObamaCamera
 					string text = args[1] as string;
 					ObamaCamera.DisplayAwoken(text);
 				}
+
+				else if (call == "SetNPCFocus") {NPCFocus = Convert.ToInt32(args[1]);}
+				else if (call == "GetNPCFocus") {return NPCFocus;}
+				else if (call == "AlwaysFocus") {NPCAlwaysFocus = true;}
+				else if (call == "NotAlwaysFocus") { NPCAlwaysFocus = false;}
+				else if (call == "indexModifier") { ILEditReplacement.Add(args[1] as Func<int>);}
+				else if (call == "typeModifier") { ILEditReplacement.Add(args[1] as Func<string>);}
+				else if (call == "loopModifier") { ILEditReplacement.Add(args[1] as Func<int>,args[2] as Func<bool>);}
+
 				else if (call == "RegisterMusic") {
 					int mus = Convert.ToInt32(args[1]);
 					string name = args[2] as string;
@@ -1125,6 +1191,9 @@ namespace ObamaCamera
 			titleData = new List<TitleData>();
 			titleData.Add(new TitleData(-1,"none","none",null));
 
+			ILEditReplacement = new ILEditReplacement();
+			ILEditReplacement.Load();
+
 			bossEncounter = new List<int>();
 			bossEncounter.Add(-1);
 
@@ -1135,6 +1204,7 @@ namespace ObamaCamera
 			Hacc.Add();
 		}
 		public override void Unload() {
+			ILEditReplacement = null;
 			musList = null;
 			BossLook = null;
 			SwitchFollow = null;
@@ -1158,6 +1228,7 @@ namespace ObamaCamera
 		static string titleSubText;
 
 		static string awoken;
+		public static string nameAwoken;
 		static int awokenTime;
 		public static Color awokenColor;
 
@@ -1238,6 +1309,7 @@ namespace ObamaCamera
 			awoken = text;
 			awokenTime = 240;
 			awokenColor = new Color(175, 75, 255);
+			nameAwoken = "";
 		}
 		public static string ShowMusicVanilla(int num) {
 			if (num == 1) {return "Overworld Day";}
@@ -1355,15 +1427,44 @@ namespace ObamaCamera
 					alpha = (num/max);
 				}
 				if (awoken == "") {return;}
-				string text = awoken;
-				TextSnippet[] snippets = ChatManager.ParseMessage(text, (awokenColor*alpha)).ToArray();
-				Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
-				Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
-				pos = pos.Floor();
-				pos.Y += Main.screenHeight/4f;
-				pos.Y += Main.screenHeight/8f;
-				//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
-				ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out int hover);
+				string[] textList = awoken.Split('\n');
+				Color color = awokenColor;
+				int hover = 0;
+				float offset = 0f;
+				if (nameAwoken != "") {
+					offset -= 10f;
+					color = Color.White;
+				}
+				for (int i = 0; i < textList.Length; i++){	
+					string text = textList[i];
+					TextSnippet[] snippets = ChatManager.ParseMessage(text, (color*alpha)).ToArray();
+					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+					pos = pos.Floor();
+					pos.Y += Main.screenHeight/4f;
+					pos.Y += Main.screenHeight/8f;
+					pos.Y += offset;
+					//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
+					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out hover);
+					offset += messageSize.Y/2f;
+				}
+
+				if (nameAwoken != "") {
+
+					TextSnippet[] snippets = ChatManager.ParseMessage(awoken, (color*alpha)).ToArray();
+					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
+					pos = pos.Floor();
+					pos.Y += Main.screenHeight/4f;
+					pos.Y += Main.screenHeight/8f;
+					pos.Y -= messageSize.Y/3f;
+					string text = nameAwoken;
+					snippets = ChatManager.ParseMessage(text, (awokenColor*alpha)).ToArray();
+					messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out hover);
+				}
+
+
 				/*
 				string[] lines = awoken.Split('\n');
 				float offset = 0;
@@ -1529,6 +1630,18 @@ namespace ObamaCamera
 					}
 				}
 			}
+			/*
+			Mod meme = ModLoader.GetMod("CalamityMod");
+			if (meme != null && MyConfig.get.stealthCenter) {
+				// this one aint that bad. unlike terraria overhaul that nested their class and make me suffer for over 6 hours
+				Type type = meme.GetType().Assembly.GetType("CalamityMod.UI.StealthUI");
+				if (type == null) {return;}
+				FieldInfo field = type.GetField("Offset", BindingFlags.Public | BindingFlags.Static);
+				if (field == null) {return;}
+				Vector2 pos = (Vector2)field.GetValue(null);
+				pos = Main.LocalPlayer.Center  + new Vector2(0,15 + Main.LocalPlayer.height) - Main.screenPosition;
+			}
+			*/
 		}
 		public override void UpdateMusic(ref int music, ref MusicPriority priority) {
 			if (Main.gameMenu) {return;}
@@ -1736,6 +1849,11 @@ namespace ObamaCamera
 		[DefaultValue(true)]
 		public bool NewBiome;
 
+		[Label("Better modded boss dialog")]
+		[Tooltip("Are you tired whenever a boss constantly spamming messages in chat that you cant read ?\nthen this config for you !\nthis will make those messages display better")]
+		[DefaultValue(true)]
+		public bool betterDialog;
+
 		/*
 		[Label("Biome Title Reset")]
 		[Tooltip("Reset Local Player Discovered Biome \nChange this config to reset")]
@@ -1785,7 +1903,7 @@ namespace ObamaCamera
 
 		[Label("Password")]
 		[Tooltip("put something funny in here, idk")]
-		[DefaultValue("Amogus")]
+		[DefaultValue("Sus")]
 		public string Password;
 
 		public override void OnChanged() {
@@ -1804,6 +1922,33 @@ namespace ObamaCamera
 					Main.NewText("Among Ass");
 				}
 				Password = "SUS";
+			}
+			if (Password == "Test" && !Main.gameMenu) {
+				
+				string fart = "you look very sussy my guy... did you have some lean on your back ?!?";
+
+				// prevent things like i farted\n\n\n\n\n\n hello sorry yes
+				char prev = '/';
+				string build = "";
+				int be = 0;
+				foreach (char po in fart)
+				{
+					bool aba = true;
+					if ((be + 1) < fart.Length) {
+						if (fart[be+1] == '.') {aba = false;}
+					}
+					if (prev == '.' && po != '.' && aba) {build += "\n";}
+					else {build += po;}
+
+					if (po == '.' && prev != '.' && aba) {build += "\n";}
+
+					prev = po;
+					be++;
+				}
+
+				ObamaCamera.DisplayAwoken(build);
+				ObamaCamera.awokenColor = Color.Red;
+				ObamaCamera.nameAwoken = "Supreme Calamitas";
 			}
 		}
 
@@ -1929,6 +2074,8 @@ namespace ObamaCamera
 			On_ModifyScreenPosition += ScreenPatch;
 			On.Terraria.Main.NewText_string_byte_byte_byte_bool += NewTextPatch;
 			On.Terraria.NPC.SpawnOnPlayer += SpawnOnPlayerPatch;
+			On_PostAI += PostAIPatch;
+			On_PreAI += PreAIPatch;
 		}
 		public static void Remove() {
 			On.Terraria.Main.PlaySound_int_Vector2_int -= OnPlaySound;
@@ -1939,6 +2086,8 @@ namespace ObamaCamera
 			On_ModifyScreenPosition -= ScreenPatch;
 			On.Terraria.Main.NewText_string_byte_byte_byte_bool -= NewTextPatch;
 			On.Terraria.NPC.SpawnOnPlayer += SpawnOnPlayerPatch;
+			On_PostAI -= PostAIPatch;
+			On_PreAI -= PreAIPatch;
 		}
 		// sound list
 		// Item_14
@@ -2009,14 +2158,37 @@ namespace ObamaCamera
 			return orig(type, x, y, Style,  volumeScale, pitchOffset);
 		}
 		static void NewTextPatch(On.Terraria.Main.orig_NewText_string_byte_byte_byte_bool orig, string newText, byte R, byte G, byte B, bool force) {
+			if (MyConfig.get.TextToCombatText) {
+				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
+			}
+			if (MyConfig.get.betterDialog && enemyAiRunned != -1) {
+
+				NPC npc = Main.npc[enemyAiRunned];
+				string fart = newText;
+				char prev = '/';
+				string build = "";
+				int be = 0;
+
+				// a pretty complicated system that prevents thing like "...." to be deleted
+				foreach (char po in fart){
+					bool aba = true;
+					if ((be + 1) < fart.Length) {if (fart[be+1] == '.') {aba = false;}}
+					if (prev == '.' && po != '.' && aba) {build += "\n";}
+					else {build += po;}
+					if (po == '.' && prev != '.' && aba) {build += "\n";}
+					prev = po;
+					be++;
+				}
+				ObamaCamera.DisplayAwoken(build);
+				ObamaCamera.nameAwoken = npc.FullName;
+				ObamaCamera.awokenColor = new Color(R,G,B);
+				return;
+			}
 			if (PreventNewText) {
 				PreventNewText = false;
 				return;
 			}
 			orig(newText, R, G, B, force);
-			if (MyConfig.get.TextToCombatText) {
-				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
-			}
 		}
 		public static bool PreventNewText = false;
 		static void SpawnOnPlayerPatch(On.Terraria.NPC.orig_SpawnOnPlayer orig,int plr, int type) {
@@ -2040,6 +2212,11 @@ namespace ObamaCamera
 			}
 			orig(self,x,y,pickPower);
 		}
+		static int enemyAiRunned = -1;
+		static bool PreAIPatch(orig_PreAI orig, NPC npc){
+			enemyAiRunned = npc.whoAmI;
+			return orig(npc);
+		}
 
 		public delegate void orig_ModifyScreenPosition(Player player);
 		public delegate void Hook_ModifyScreenPosition(orig_ModifyScreenPosition orig, Player player);
@@ -2052,5 +2229,29 @@ namespace ObamaCamera
 				HookEndpointManager.Remove<Hook_ModifyScreenPosition>(typeof(Mod).Assembly.GetType("Terraria.ModLoader.PlayerHooks").GetMethod("ModifyScreenPosition", BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic), value);
 			}
 		}
+
+		public delegate bool orig_PreAI(NPC npc);
+		public delegate bool Hook_PreAI(orig_PreAI orig, NPC npc);
+		public static event Hook_PreAI On_PreAI {
+			add => HookEndpointManager.Add<Hook_ModifyScreenPosition>(GetModMethod("NPCLoader","PreAI"), value);
+			remove => HookEndpointManager.Remove<Hook_ModifyScreenPosition>(GetModMethod("NPCLoader","PreAI"), value);
+		}
+
+		static void PostAIPatch(orig_PostAI orig, NPC npc){
+			orig(npc);
+			enemyAiRunned = -1;
+		}
+
+		public delegate void orig_PostAI(NPC npc);
+		public delegate void Hook_PostAI(orig_PostAI orig, NPC npc);
+		public static event Hook_PostAI On_PostAI {
+			add => HookEndpointManager.Add<Hook_ModifyScreenPosition>(GetModMethod("NPCLoader","PostAI"), value);
+			remove => HookEndpointManager.Remove<Hook_ModifyScreenPosition>(GetModMethod("NPCLoader","PostAI"), value);
+		}
+
+		public static MethodBase GetModMethod(string loader,string method) {
+			return typeof(Mod).Assembly.GetType("Terraria.ModLoader."+loader).GetMethod(method, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+		}
+
 	}
 }

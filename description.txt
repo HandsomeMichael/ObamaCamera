@@ -42,6 +42,11 @@ Note 2 : Mod calls tutorial can be found at the github repo wiki
 
 [ Changelog ]
 
+v.0.8.7 [ clamteh ]
+- added "il edit replacement" mod calls !
+- added experimental "Better modded boss dialog"
+- fixed sniper scope wont work
+
 V.0.8.6
 - music list is now sorted
 - added experimental "Velocity based camera"
