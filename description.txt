@@ -1,4 +1,4 @@
-[c/FF0000:Obama Camera Overhaul] is a mod that allows you to chance how camera works and also adding some other unrelated things such as music display , boss intro , biome discovery and other stuff
+[c/FF0000:Obama Camera Overhaul] is a mod that allows you to chance how camera works and also adding some other unrelated things such as music display , boss intro , biome discovery , better modded boss dialog and other stuff
 
 Inspired by my previous mod [c/FFFF00:Obama Gaming] and [c/FFFF00:Terraria Overhaul].
 works with other mod and sniper scope. 
@@ -25,6 +25,7 @@ Feature :
 - Quick Switch Camera Style Hotkey
 - Lock Camera Hotkey
 [i:184] Some unrelated things !!
+- Better modded boss dialog 
 - CJ Ah shid here we go again
 - New Biome Discover Info (show you name of biome and tell other people that you discover it)
 - Chat Text to Combat Text !
@@ -41,6 +42,11 @@ Note : this mod is open source. you can contribute to this if you wanted to,the 
 Note 2 : Mod calls tutorial can be found at the github repo wiki
 
 [ Changelog ]
+
+v.0.8.8
+- added more mod calls
+- added procedural text to better modded boss, requested by Ryan
+- fixed bug with better modded boss dialog rendering
 
 v.0.8.7 [ clamteh ]
 - added "il edit replacement" mod calls !

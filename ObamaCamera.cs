@@ -817,6 +817,7 @@ namespace ObamaCamera
 				SourceNPCIndex = -1;
 				SourceProjectileIndex = -1;
 			}
+			ObamaCamera.ILEditReplacement.TryPostCameraSetup(ref flag1,ref screenCache);
 			if (config.SmoothCamera) {
 				Main.screenPosition = screenCache;
 				if (flag1){
@@ -872,15 +873,48 @@ namespace ObamaCamera
 	// as the title says. its a replacement for IL editing this mod
 	public class ILEditReplacement
 	{
+		public struct PostCameraSetup 
+		{
+			public Func<bool?> returnValue;
+			public Func<Vector2?> screenCache;
+			public Func<Vector2?> screenPos;
+			public PostCameraSetup(Func<bool?> returnValue,Func<Vector2?> screenCache,Func<Vector2?> screenPos) {
+				this.returnValue = returnValue;
+				this.screenCache = screenCache;
+				this.screenPos = screenPos;
+			}
+		}
+
 		public List<Func<int>> indexModifier;
 		public List<Func<string>> typeModifier;
+		public List<Func<string>> loopOver;
 		public List<KeyValuePair<Func<int>,Func<bool>>> loopModifier;
+		public List<PostCameraSetup> cameraSetup;
+
+		public void Add(Func<bool?> returnValue,Func<Vector2?> screenCache,Func<Vector2?> screenPos) {
+			cameraSetup.Add(new PostCameraSetup(returnValue,screenCache,screenPos));
+		}
 
 		public void Add(Func<int> func) => indexModifier.Add(func);
 		public void Add(Func<string> func) => typeModifier.Add(func);
 		public void Add(Func<int> func1,Func<bool> func2) => loopModifier.Add(new KeyValuePair<Func<int>,Func<bool>>(func1,func2));
 
+		public void TryPostCameraSetup(ref bool flag1,ref Vector2 cache) {
+			if (cameraSetup != null && cameraSetup.Count > 0) {
+				foreach (PostCameraSetup item in cameraSetup){
+					bool? flag = item.returnValue();
+					Vector2? screenCache = item.screenCache();
+					Vector2? screenPos = item.screenPos();
+					if (flag != null) {flag1 = flag ?? false;}
+					if (screenCache != null) {cache = screenCache ?? Vector2.Zero;}
+					if (screenPos != null) {Main.screenPosition = screenPos ?? Vector2.Zero;}
+				}
+			}
+		}
+
 		public void Load() {
+			cameraSetup = new List<PostCameraSetup>();
+			cameraSetup.Add(new PostCameraSetup((Func<bool?>)(() => null),(Func<Vector2?>)(() => null),(Func<Vector2?>)(() => null)));
 			indexModifier = new List<Func<int>>();
 			indexModifier.Add((Func<int>)(() => -2));
 			typeModifier = new List<Func<string>>();
@@ -1011,6 +1045,7 @@ namespace ObamaCamera
 				else if (call == "indexModifier") { ILEditReplacement.Add(args[1] as Func<int>);}
 				else if (call == "typeModifier") { ILEditReplacement.Add(args[1] as Func<string>);}
 				else if (call == "loopModifier") { ILEditReplacement.Add(args[1] as Func<int>,args[2] as Func<bool>);}
+				else if (call == "PostCameraSetup") { ILEditReplacement.Add(args[1] as Func<bool?>,args[2] as Func<Vector2?>,args[3] as Func<Vector2?>);}
 
 				else if (call == "RegisterMusic") {
 					int mus = Convert.ToInt32(args[1]);
@@ -1310,6 +1345,8 @@ namespace ObamaCamera
 			awokenTime = 240;
 			awokenColor = new Color(175, 75, 255);
 			nameAwoken = "";
+			useTypeWrite = false;
+			typewrite = "";
 		}
 		public static string ShowMusicVanilla(int num) {
 			if (num == 1) {return "Overworld Day";}
@@ -1412,6 +1449,8 @@ namespace ObamaCamera
 			}
 			return ItemID.MusicBox;
 		}
+		static string typewrite = "";
+		public static bool useTypeWrite = false;
 		static void DrawAwoken(SpriteBatch spriteBatch) {
 			if (awokenTime > 0) {
 				awokenTime--;
@@ -1423,20 +1462,37 @@ namespace ObamaCamera
 					alpha = 1f - alpha;
 				}
 				else {
+					
 					if (num > max) {num = max;}
 					alpha = (num/max);
+
+					if (useTypeWrite) {
+						if (typewrite.Length != awoken.Length) {
+							alpha = 1f;
+							awokenTime = 210;
+						}
+					}
 				}
 				if (awoken == "") {return;}
-				string[] textList = awoken.Split('\n');
+				// high intelligence local variable naming
+				string ass = awoken;
+				if (useTypeWrite) {
+					if (typewrite.Length != awoken.Length && Main.GameUpdateCount % 3 == 0) {
+						typewrite += awoken[typewrite.Length];
+					}
+					ass = typewrite;
+				}
+				string[] textList = ass.Split('\n');
 				Color color = awokenColor;
 				int hover = 0;
 				float offset = 0f;
 				if (nameAwoken != "") {
-					offset -= 10f;
+					//offset = 10f;
 					color = Color.White;
 				}
 				for (int i = 0; i < textList.Length; i++){	
 					string text = textList[i];
+					if (text == "") {continue;}
 					TextSnippet[] snippets = ChatManager.ParseMessage(text, (color*alpha)).ToArray();
 					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
 					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
@@ -1450,8 +1506,7 @@ namespace ObamaCamera
 				}
 
 				if (nameAwoken != "") {
-
-					TextSnippet[] snippets = ChatManager.ParseMessage(awoken, (color*alpha)).ToArray();
+					TextSnippet[] snippets = ChatManager.ParseMessage(textList[0], (color*alpha)).ToArray();
 					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
 					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 					pos = pos.Floor();
@@ -1854,6 +1909,12 @@ namespace ObamaCamera
 		[DefaultValue(true)]
 		public bool betterDialog;
 
+		[Label("Better modded boss dialog combat text support")]
+		[Tooltip("Better modded boss dialog now support combat text usage")]
+		[DefaultValue(false)]
+		public bool betterDialogCombatText;
+
+
 		/*
 		[Label("Biome Title Reset")]
 		[Tooltip("Reset Local Player Discovered Biome \nChange this config to reset")]
@@ -1925,30 +1986,15 @@ namespace ObamaCamera
 			}
 			if (Password == "Test" && !Main.gameMenu) {
 				
-				string fart = "you look very sussy my guy... did you have some lean on your back ?!?";
-
-				// prevent things like i farted\n\n\n\n\n\n hello sorry yes
-				char prev = '/';
-				string build = "";
-				int be = 0;
-				foreach (char po in fart)
-				{
-					bool aba = true;
-					if ((be + 1) < fart.Length) {
-						if (fart[be+1] == '.') {aba = false;}
-					}
-					if (prev == '.' && po != '.' && aba) {build += "\n";}
-					else {build += po;}
-
-					if (po == '.' && prev != '.' && aba) {build += "\n";}
-
-					prev = po;
-					be++;
-				}
-
+				string funni = "you look very sussy my guy... did you have some [c/FFFF00:PISS] on your back ?!?";
+				string fart = "";
+				var snippetList = ChatManager.ParseMessage(funni,Color.White);
+				foreach (var i in snippetList){if (!i.TextOriginal.Contains("[i")) {fart += i.Text;}}
+				string build = Hacc.Splitten(fart);
 				ObamaCamera.DisplayAwoken(build);
+				ObamaCamera.nameAwoken = "Supreme Fartalass";
 				ObamaCamera.awokenColor = Color.Red;
-				ObamaCamera.nameAwoken = "Supreme Calamitas";
+				ObamaCamera.useTypeWrite = true;
 			}
 		}
 
@@ -2076,6 +2122,7 @@ namespace ObamaCamera
 			On.Terraria.NPC.SpawnOnPlayer += SpawnOnPlayerPatch;
 			On_PostAI += PostAIPatch;
 			On_PreAI += PreAIPatch;
+			On.Terraria.CombatText.NewText_Rectangle_Color_string_bool_bool += CombatTextPatch;
 		}
 		public static void Remove() {
 			On.Terraria.Main.PlaySound_int_Vector2_int -= OnPlaySound;
@@ -2088,6 +2135,7 @@ namespace ObamaCamera
 			On.Terraria.NPC.SpawnOnPlayer += SpawnOnPlayerPatch;
 			On_PostAI -= PostAIPatch;
 			On_PreAI -= PreAIPatch;
+			On.Terraria.CombatText.NewText_Rectangle_Color_string_bool_bool -= CombatTextPatch;
 		}
 		// sound list
 		// Item_14
@@ -2141,6 +2189,16 @@ namespace ObamaCamera
 			}
 			return orig(type,position);
 		}
+		private static int CombatTextPatch(On.Terraria.CombatText.orig_NewText_Rectangle_Color_string_bool_bool orig,Rectangle location, Color color, string text, bool dramatic, bool dot ) {
+			if (MyConfig.get.betterDialogCombatText && MyConfig.get.betterDialog && enemyAiRunned != -1) {
+				NPC npc = Main.npc[enemyAiRunned];
+				if (location == npc.getRect() || location == npc.Hitbox) {
+					KrinjDialog(text,color);
+					return 0;
+				}
+			}
+			return orig(location,color,text,dramatic,dot);
+		}
 		private static SoundEffectInstance OnPlaySound3(On.Terraria.Main.orig_PlaySound_LegacySoundStyle_int_int orig,LegacySoundStyle type, int x, int y){
 			if (MyConfig.get.RoarShake && !Main.gameMenu && MyConfig.get.multipleSoundCheck) {
 				if (Vector2.Distance(new Vector2(x,y),Main.LocalPlayer.Center) < MyConfig.get.RoarShakeInt) {
@@ -2157,31 +2215,40 @@ namespace ObamaCamera
 			}
 			return orig(type, x, y, Style,  volumeScale, pitchOffset);
 		}
+		public static string Splitten(string fart) {
+			char prev = '/';
+			string build = "";
+			int be = 0;
+
+			// a pretty complicated system that prevents thing like "...." to be deleted
+			foreach (char po in fart){
+				bool aba = true;
+				if ((be + 1) < fart.Length) {if (fart[be+1] == '.') {aba = false;}}
+				if (prev == '.' && po != '.' && aba) {build += "\n";}
+				else {build += po;}
+				if (po == '.' && prev != '.' && aba) {build += "\n";}
+				prev = po;
+				be++;
+			}
+			return build;
+		}
+		public static void KrinjDialog(string newText,Color color) {
+			string funni = "";
+			var snippetList = ChatManager.ParseMessage(newText,Color.White);
+			foreach (var i in snippetList){if (!i.TextOriginal.Contains("[i")) {funni += i.Text;}}
+			NPC npc = Main.npc[enemyAiRunned];
+			string build = Splitten(funni);
+			ObamaCamera.DisplayAwoken(build);
+			ObamaCamera.nameAwoken = npc.FullName;
+			ObamaCamera.awokenColor = color;
+			ObamaCamera.useTypeWrite = true;
+		}
 		static void NewTextPatch(On.Terraria.Main.orig_NewText_string_byte_byte_byte_bool orig, string newText, byte R, byte G, byte B, bool force) {
-			if (MyConfig.get.TextToCombatText) {
+			if (MyConfig.get.TextToCombatText && enemyAiRunned == -1) {
 				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
 			}
 			if (MyConfig.get.betterDialog && enemyAiRunned != -1) {
-
-				NPC npc = Main.npc[enemyAiRunned];
-				string fart = newText;
-				char prev = '/';
-				string build = "";
-				int be = 0;
-
-				// a pretty complicated system that prevents thing like "...." to be deleted
-				foreach (char po in fart){
-					bool aba = true;
-					if ((be + 1) < fart.Length) {if (fart[be+1] == '.') {aba = false;}}
-					if (prev == '.' && po != '.' && aba) {build += "\n";}
-					else {build += po;}
-					if (po == '.' && prev != '.' && aba) {build += "\n";}
-					prev = po;
-					be++;
-				}
-				ObamaCamera.DisplayAwoken(build);
-				ObamaCamera.nameAwoken = npc.FullName;
-				ObamaCamera.awokenColor = new Color(R,G,B);
+				KrinjDialog(newText,new Color(R,G,B));
 				return;
 			}
 			if (PreventNewText) {
