@@ -61,12 +61,17 @@ one of them including :
 ![image](https://user-images.githubusercontent.com/70310191/155921326-59a6d3b9-0568-4118-a7ce-81c4527af85f.png)
 - linux simulator
 
+
 ![image](https://user-images.githubusercontent.com/70310191/155921873-f0145c29-4eed-4044-8d58-c4480ecd28d3.png)
+- better modded boss dialog
+
+
+![image](https://user-images.githubusercontent.com/70310191/159277247-9a75c5ba-6230-49b8-89f4-b82608b37e32.png)
 
 
 changelog can be found at description.txt
 
 you can see wiki for **Mod Calls Guide** !
 
-last updated 19/3/2022
+last updated 21/3/2022
 contact me on discord (Neko the Cat'nt#7385) if you cant report issue on github
