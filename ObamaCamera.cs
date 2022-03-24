@@ -269,6 +269,7 @@ namespace ObamaCamera
 						save = false;
 					}
 				}
+				ObamaCamera.ILEditReplacement.BossCheckModify(npc.type,ref save);
 				if (save){ObamaCamera.bossEncounter.Add(npc.type);}
 				if (ObamaCamera.titleData != null && ObamaCamera.titleData.Count > 0) {
 					foreach (var item in ObamaCamera.titleData)
@@ -636,6 +637,16 @@ namespace ObamaCamera
 						curSubworld = "";
 					}
 				}
+				if (ObamaCamera.biomeList != null && ObamaCamera.biomeList.Count > 0) {
+					foreach (var item in ObamaCamera.biomeList)
+					{
+						if (item.biome() && !biomeEncounter.Contains(item.text)) {
+							name = item.text;
+							subtitle = item.subtext;
+							color = item.color;
+						}
+					}
+				}
 				if (name != "") {
 					string hex = "[c/"+color.Hex3()+":";
 					string text = player.name+$" has Discovered "+hex+name+" Biome]";
@@ -872,7 +883,20 @@ namespace ObamaCamera
 			this.texture = texture;
 		}
 	}
-	// as the title says. its a replacement for IL editing this mod
+	public struct BiomeData
+	{
+		public Func<bool> biome;
+		public string text;
+		public string subtext;
+		public Color color;
+		public BiomeData(Func<bool> biome,string text,string subtext, Color color) {
+			this.biome = biome;
+			this.text = text;
+			this.subtext = subtext;
+			this.color = color;
+		}
+	}
+	// as the title says. its a replacement for IL editing this mod, feel free to request one
 	public class ILEditReplacement
 	{
 		public struct PostCameraSetup 
@@ -892,15 +916,23 @@ namespace ObamaCamera
 		public List<Func<string>> loopOver;
 		public List<KeyValuePair<Func<int>,Func<bool>>> loopModifier;
 		public List<PostCameraSetup> cameraSetup;
+		public List<Func<int,bool?>> bossCheckModify;
 
 		public void Add(Func<bool?> returnValue,Func<Vector2?> screenCache,Func<Vector2?> screenPos) {
 			cameraSetup.Add(new PostCameraSetup(returnValue,screenCache,screenPos));
 		}
-
+		public void Add(Func<int,bool?> func) => bossCheckModify.Add(func);
 		public void Add(Func<int> func) => indexModifier.Add(func);
 		public void Add(Func<string> func) => typeModifier.Add(func);
 		public void Add(Func<int> func1,Func<bool> func2) => loopModifier.Add(new KeyValuePair<Func<int>,Func<bool>>(func1,func2));
-
+		public void BossCheckModify(int type, ref bool save) {
+			if (bossCheckModify != null && bossCheckModify.Count > 0) {
+				foreach (Func<int,bool?> item in bossCheckModify){
+					bool? flag = item(type);
+					if (flag != null) {save = flag ?? true;}
+				}
+			}
+		}
 		public void TryPostCameraSetup(ref bool flag1,ref Vector2 cache) {
 			if (cameraSetup != null && cameraSetup.Count > 0) {
 				foreach (PostCameraSetup item in cameraSetup){
@@ -915,6 +947,8 @@ namespace ObamaCamera
 		}
 
 		public void Load() {
+			bossCheckModify = new List<Func<int,bool?>>();
+			bossCheckModify.Add((Func<int,bool?>)((int type) => null));
 			cameraSetup = new List<PostCameraSetup>();
 			cameraSetup.Add(new PostCameraSetup((Func<bool?>)(() => null),(Func<Vector2?>)(() => null),(Func<Vector2?>)(() => null)));
 			indexModifier = new List<Func<int>>();
@@ -969,6 +1003,7 @@ namespace ObamaCamera
 		public static ModHotKey BossLook;
 		public static ModHotKey SwitchFollow;
 		public static ModHotKey LockCamera;
+		public static List<BiomeData> biomeList = new List<BiomeData>();
 		public static List<MusicRegister> musList = new List<MusicRegister>();
 		public static List<TitleData> titleData = new List<TitleData>();
 		public static List<int> bossEncounter = new List<int>();
@@ -1074,6 +1109,18 @@ namespace ObamaCamera
 				else if (call == "SetScreenLock") { 
 					Vector2 pos = (args[1] as Vector2?) ?? Main.LocalPlayer.Center;
 					Bebeq.screenLock = pos;
+				}
+				else if (call == "AddBossEncounter") {
+					bossEncounter.Add(Convert.ToInt32(args[1]));
+				}
+				else if (call == "GetBossEncounter") {return bossEncounter;}
+				else if (call == "bossCheckModify") {ILEditReplacement.Add(args[1] as Func<int,bool?>);}
+				else if (call == "RegisterBiome") {
+					Func<bool> biome = args[1] as Func<bool>;
+					string name = args[2] as string;
+					string subtext = args[3] as string;
+					Color? color = args[4] as Color?;
+					biomeList.Add(new BiomeData(biome,name,subtext,color ?? Color.White));
 				}
 
 
@@ -1255,9 +1302,12 @@ namespace ObamaCamera
 			musList.Add(new MusicRegister(-1,"Unknown Music","tModLoader"));
 			titleData = new List<TitleData>();
 			titleData.Add(new TitleData(-1,"none","none",null));
+			biomeList = new List<BiomeData>();
+			biomeList.Add(new BiomeData((Func<bool>)(() => false),"Test","Test",Color.White));
 
 			ILEditReplacement = new ILEditReplacement();
 			ILEditReplacement.Load();
+			
 
 			bossEncounter = new List<int>();
 			bossEncounter.Add(-1);
@@ -1269,6 +1319,7 @@ namespace ObamaCamera
 			Hacc.Add();
 		}
 		public override void Unload() {
+			biomeList = null;
 			ILEditReplacement = null;
 			musList = null;
 			BossLook = null;
@@ -1538,9 +1589,13 @@ namespace ObamaCamera
 					pos.Y += Main.screenHeight/4f;
 					pos.Y += Main.screenHeight/8f;
 					pos.Y += offset;
+					pos += MyConfig.get.betterDialogOffset;
 					//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
 					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, font, snippets, pos, 0f, messageSize/2f, Vector2.One*scale, out hover);
 					offset += messageSize.Y/2f;
+					if (MyConfig.get.betterDialogSmoll) {
+						offset += messageSize.Y/2f;
+					}
 				}
 
 				if (nameAwoken != "") {
@@ -1556,6 +1611,10 @@ namespace ObamaCamera
 					pos.Y += Main.screenHeight/4f;
 					pos.Y += Main.screenHeight/8f;
 					pos.Y -= messageSize.Y/3f;
+					pos += MyConfig.get.betterDialogOffset;
+					if (MyConfig.get.betterDialogSmoll) {
+						pos.Y -= 10;
+					}
 					string text = nameAwoken;
 					snippets = ChatManager.ParseMessage(text, (awokenColor*alpha)).ToArray();
 					messageSize = ChatManager.GetStringSize(font, snippets, Vector2.One);
@@ -1710,6 +1769,7 @@ namespace ObamaCamera
 				ObamaCamera.awokenColor = Color.Yellow;
 				ObamaCamera.useTypeWrite = false;
 				ObamaCamera.awokenTime = 210;
+				ObamaCamera.awokenDye = (Main.LocalPlayer.HeldItem.dye > 0) ? Main.LocalPlayer.HeldItem.type : 0;
 				
 				if (Main.keyState.IsKeyDown(Keys.Right)) {
 					MyConfig.get.betterDialogOffset.X += 4;
@@ -1787,7 +1847,7 @@ namespace ObamaCamera
 			if (MyConfig.get != null) {
 				if (MyConfig.get.musicReload && musList != null && musList.Count > 0) {
 					foreach (var item in musList){
-						if (item != null) {
+						if (item.music != -1) {
 							int TitleMusic = item.music;
 							if (Main.music != null && Main.music.IndexInRange(TitleMusic) && (Main.music[TitleMusic]?.IsPlaying ?? false)){
 								Main.music[TitleMusic].Stop(AudioStopOptions.Immediate);
@@ -1970,7 +2030,7 @@ namespace ObamaCamera
 		[Tooltip("The speed of modded boss dialog, set to 0 for instant text\n [default is 2]")]
 		[Range(0, 5)]
 		[Increment(1)]
-		[DefaultValue(2)]
+		[DefaultValue(1)]
 		[Slider] 
 		public int betterDialogTick;
 
@@ -2374,6 +2434,11 @@ namespace ObamaCamera
 		}
 		public static bool PreventNewText = false;
 		static void SpawnOnPlayerPatch(On.Terraria.NPC.orig_SpawnOnPlayer orig,int plr, int type) {
+			int ai = -1;
+			if (enemyAiRunned > -1) {
+				enemyAiRunned = -1;
+				ai = enemyAiRunned;
+			}
 			if (MyConfig.get.awokenDisplay) {
 				PreventNewText = true;
 			}
@@ -2384,6 +2449,7 @@ namespace ObamaCamera
 				npc.SetDefaults(type);
 				ObamaCamera.DisplayAwoken(Language.GetTextValue("Announcement.HasAwoken", npc.TypeName));
 			}
+			if (ai > -1) {enemyAiRunned = ai;}
 		}
 		static void TilePatch(On.Terraria.Player.orig_PickTile orig,Player self,int x, int y, int pickPower)
 		{

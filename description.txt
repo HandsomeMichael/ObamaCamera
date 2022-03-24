@@ -44,8 +44,11 @@ Note 2 : Mod calls tutorial can be found at the github repo wiki
 [ Changelog ]
 
 v.0.8.9
-- added mod calls regarding to custom boss dialog
-- added some fancy shader for calamity bosses
+- added more mod calls
+- added config for offsetting boss dialog
+- added config to make boss dialog smoller
+- added config for boss dialog text speed
+- fixed bug with boss dialog saying "enemy has awoken"
 - fixed bug with system null reference exception
 
 v.0.8.8
