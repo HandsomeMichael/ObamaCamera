@@ -48,7 +48,6 @@ v.0.8.9
 - added config for offsetting boss dialog
 - added config to make boss dialog smoller
 - added config for boss dialog text speed
-- fixed bug with boss dialog saying "enemy has awoken"
 - fixed bug with system null reference exception
 
 v.0.8.8
