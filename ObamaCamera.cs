@@ -33,6 +33,8 @@ using System.Collections.Concurrent;
 using ReLogic.Graphics;
 using System.Runtime;
 using Microsoft.Xna.Framework.Input;
+using Terraria.Graphics.Shaders;
+
 
 // all in one file lol
 // you can already tell that this code is a nightmare :pe:
@@ -331,8 +333,8 @@ namespace ObamaCamera
 	{
 		public MyConfig config => ModContent.GetInstance<MyConfig>();
 
-		static Vector2 screenCache = new Vector2(0,0);
-		static Vector2 screenLock = new Vector2(0,0);
+		public static Vector2 screenCache = new Vector2(0,0);
+		public static Vector2 screenLock = new Vector2(0,0);
 
 		public static int SourcePlayerIndex = -1;
 		public static int SourceNPCIndex = -1;
@@ -1046,6 +1048,34 @@ namespace ObamaCamera
 				else if (call == "typeModifier") { ILEditReplacement.Add(args[1] as Func<string>);}
 				else if (call == "loopModifier") { ILEditReplacement.Add(args[1] as Func<int>,args[2] as Func<bool>);}
 				else if (call == "PostCameraSetup") { ILEditReplacement.Add(args[1] as Func<bool?>,args[2] as Func<Vector2?>,args[3] as Func<Vector2?>);}
+				else if (call == "BetterDialog") { 
+					string text = args[1] as string;
+					string name = args[2] as string;
+					Color? color = args[3] as Color?;
+					Hacc.KrinjDialogText(text,name,color ?? Color.White);
+				}
+				else if (call == "BetterDialogDye") { 
+					string text = args[1] as string;
+					string name = args[2] as string;
+					Color? color = args[3] as Color?;
+					int dye = Convert.ToInt32(args[4]);
+					Hacc.KrinjDialogText(text,name,color ?? Color.White,dye);
+				}
+				else if (call == "GetScreenCache") { 
+					return Bebeq.screenCache;
+				}
+				else if (call == "SetScreenCache") { 
+					Vector2 pos = (args[1] as Vector2?) ?? Main.LocalPlayer.Center;
+					Bebeq.screenCache = pos;
+				}
+				else if (call == "GetScreenLock") { 
+					return Bebeq.screenLock;
+				}
+				else if (call == "SetScreenLock") { 
+					Vector2 pos = (args[1] as Vector2?) ?? Main.LocalPlayer.Center;
+					Bebeq.screenLock = pos;
+				}
+
 
 				else if (call == "RegisterMusic") {
 					int mus = Convert.ToInt32(args[1]);
@@ -1266,6 +1296,7 @@ namespace ObamaCamera
 		public static string nameAwoken;
 		static int awokenTime;
 		public static Color awokenColor;
+		public static int awokenDye;
 
 		static string nameMusic;
 		public static int nameMusicTime;
@@ -1347,6 +1378,7 @@ namespace ObamaCamera
 			nameAwoken = "";
 			useTypeWrite = false;
 			typewrite = "";
+			awokenDye = 0;
 		}
 		public static string ShowMusicVanilla(int num) {
 			if (num == 1) {return "Overworld Day";}
@@ -1469,7 +1501,7 @@ namespace ObamaCamera
 					if (useTypeWrite) {
 						if (typewrite.Length != awoken.Length) {
 							alpha = 1f;
-							awokenTime = 210;
+							awokenTime = 120;
 						}
 					}
 				}
@@ -1477,7 +1509,7 @@ namespace ObamaCamera
 				// high intelligence local variable naming
 				string ass = awoken;
 				if (useTypeWrite) {
-					if (typewrite.Length != awoken.Length && Main.GameUpdateCount % 3 == 0) {
+					if (typewrite.Length != awoken.Length && Main.GameUpdateCount % MyConfig.get.betterDialogTick == 0) {
 						typewrite += awoken[typewrite.Length];
 					}
 					ass = typewrite;
@@ -1490,24 +1522,35 @@ namespace ObamaCamera
 					//offset = 10f;
 					color = Color.White;
 				}
+				var font = Main.fontDeathText;
+				float scale = 0.5f;
+				if (MyConfig.get.betterDialogSmoll) {
+					scale = 1f;
+					font = Main.fontMouseText;
+				}
 				for (int i = 0; i < textList.Length; i++){	
 					string text = textList[i];
 					if (text == "") {continue;}
 					TextSnippet[] snippets = ChatManager.ParseMessage(text, (color*alpha)).ToArray();
-					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					Vector2 messageSize = ChatManager.GetStringSize(font, snippets, Vector2.One);
 					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 					pos = pos.Floor();
 					pos.Y += Main.screenHeight/4f;
 					pos.Y += Main.screenHeight/8f;
 					pos.Y += offset;
 					//DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
-					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out hover);
+					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, font, snippets, pos, 0f, messageSize/2f, Vector2.One*scale, out hover);
 					offset += messageSize.Y/2f;
 				}
 
 				if (nameAwoken != "") {
+					if (awokenDye > 0) {
+						Main.spriteBatch.End();
+						Main.spriteBatch.Begin(SpriteSortMode.Immediate, null, null, null, null, null, Main.UIScaleMatrix);
+						GameShaders.Armor.Apply(GameShaders.Armor.GetShaderIdFromItemId(awokenDye), new NPC(), null);
+					}
 					TextSnippet[] snippets = ChatManager.ParseMessage(textList[0], (color*alpha)).ToArray();
-					Vector2 messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
+					Vector2 messageSize = ChatManager.GetStringSize(font, snippets, Vector2.One);
 					Vector2 pos = new Vector2(Main.screenWidth/2,Main.screenHeight/2);
 					pos = pos.Floor();
 					pos.Y += Main.screenHeight/4f;
@@ -1515,8 +1558,12 @@ namespace ObamaCamera
 					pos.Y -= messageSize.Y/3f;
 					string text = nameAwoken;
 					snippets = ChatManager.ParseMessage(text, (awokenColor*alpha)).ToArray();
-					messageSize = ChatManager.GetStringSize(Main.fontDeathText, snippets, Vector2.One);
-					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Main.fontDeathText, snippets, pos, 0f, messageSize/2f, Vector2.One/2f, out hover);
+					messageSize = ChatManager.GetStringSize(font, snippets, Vector2.One);
+					ChatManager.DrawColorCodedStringWithShadow(spriteBatch, font, snippets, pos, 0f, messageSize/2f, Vector2.One*scale, out hover);
+					if (awokenDye > 0) {
+						Main.spriteBatch.End();
+						Main.spriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, null, Main.UIScaleMatrix);
+					}
 				}
 
 
@@ -1655,6 +1702,32 @@ namespace ObamaCamera
 					MyConfig.SaveConfig();
 				}
 			}
+			if (MyConfig.get.betterDialogMove) {
+
+				string build = Hacc.Splitten("Test test test test test");
+				ObamaCamera.DisplayAwoken(build);
+				ObamaCamera.nameAwoken = "Test";
+				ObamaCamera.awokenColor = Color.Yellow;
+				ObamaCamera.useTypeWrite = false;
+				ObamaCamera.awokenTime = 210;
+				
+				if (Main.keyState.IsKeyDown(Keys.Right)) {
+					MyConfig.get.betterDialogOffset.X += 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Left)) {
+					MyConfig.get.betterDialogOffset.X -= 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Up)) {
+					MyConfig.get.betterDialogOffset.Y -= 4;
+					MyConfig.SaveConfig();
+				}
+				if (Main.keyState.IsKeyDown(Keys.Down)) {
+					MyConfig.get.betterDialogOffset.Y += 4;
+					MyConfig.SaveConfig();
+				}
+			}
 			DrawAwoken(spriteBatch);
 			DrawTitle(spriteBatch);
 			DrawMusic(spriteBatch);
@@ -1710,11 +1783,16 @@ namespace ObamaCamera
 			}
 		}
 		public override void Close() {
-			if (MyConfig.get.musicReload && musList != null && musList.Count > 0) {
-				foreach (var item in musList){
-					int TitleMusic = item.music;
-					if (Main.music.IndexInRange(TitleMusic) && (Main.music[TitleMusic]?.IsPlaying ?? false)){
-						Main.music[TitleMusic].Stop(AudioStopOptions.Immediate);
+			// alot of null check bc the funni unload
+			if (MyConfig.get != null) {
+				if (MyConfig.get.musicReload && musList != null && musList.Count > 0) {
+					foreach (var item in musList){
+						if (item != null) {
+							int TitleMusic = item.music;
+							if (Main.music != null && Main.music.IndexInRange(TitleMusic) && (Main.music[TitleMusic]?.IsPlaying ?? false)){
+								Main.music[TitleMusic].Stop(AudioStopOptions.Immediate);
+							}
+						}
 					}
 				}
 			}
@@ -1878,9 +1956,41 @@ namespace ObamaCamera
 		[DefaultValue(false)]
 		public bool musicNameMove;
 
-		[Label("Display music name offset position")]
-		[Tooltip("The offset of Display music name ui")]
+		[JsonIgnore]
 		public Vector2 musicNameOffset = Vector2.Zero;
+
+		[Header("Better modded boss dialog")]
+
+		[Label("modded boss dialog")]
+		[Tooltip("Are you tired whenever a modded boss writing down stuf in chat?\nthen this config for you !\nthis will make those messages display better by making actual dialog system")]
+		[DefaultValue(true)]
+		public bool betterDialog;
+
+		[Label("modded boss dialog speed")]
+		[Tooltip("The speed of modded boss dialog, set to 0 for instant text\n [default is 2]")]
+		[Range(0, 5)]
+		[Increment(1)]
+		[DefaultValue(2)]
+		[Slider] 
+		public int betterDialogTick;
+
+		[Label("Smolll modded boss dialog")]
+		[Tooltip("Make modded boss dialog")]
+		[DefaultValue(true)]
+		public bool betterDialogSmoll;
+
+		[Label("modded boss dialog combat text support")]
+		[Tooltip("Better modded boss dialog now support combat text usage")]
+		[DefaultValue(false)]
+		public bool betterDialogCombatText;
+
+		[Label("modded boss dialog move")]
+		[Tooltip("Use arrows key to move the dialog bar")]
+		[DefaultValue(false)]
+		public bool betterDialogMove;
+
+		[JsonIgnore]
+		public Vector2 betterDialogOffset = Vector2.Zero;
 
 		[Header("Experimental and Funny Stuff")]
 
@@ -1903,16 +2013,6 @@ namespace ObamaCamera
 		[Tooltip("Display biome name and the description when discovering a new biome\nsupports calamity biome !")]
 		[DefaultValue(true)]
 		public bool NewBiome;
-
-		[Label("Better modded boss dialog")]
-		[Tooltip("Are you tired whenever a boss constantly spamming messages in chat that you cant read ?\nthen this config for you !\nthis will make those messages display better")]
-		[DefaultValue(true)]
-		public bool betterDialog;
-
-		[Label("Better modded boss dialog combat text support")]
-		[Tooltip("Better modded boss dialog now support combat text usage")]
-		[DefaultValue(false)]
-		public bool betterDialogCombatText;
 
 
 		/*
@@ -1987,14 +2087,7 @@ namespace ObamaCamera
 			if (Password == "Test" && !Main.gameMenu) {
 				
 				string funni = "you look very sussy my guy... did you have some [c/FFFF00:PISS] on your back ?!?";
-				string fart = "";
-				var snippetList = ChatManager.ParseMessage(funni,Color.White);
-				foreach (var i in snippetList){if (!i.TextOriginal.Contains("[i")) {fart += i.Text;}}
-				string build = Hacc.Splitten(fart);
-				ObamaCamera.DisplayAwoken(build);
-				ObamaCamera.nameAwoken = "Supreme Fartalass";
-				ObamaCamera.awokenColor = Color.Red;
-				ObamaCamera.useTypeWrite = true;
+				Hacc.KrinjDialogText(funni,"Supreme Fartalass",Color.Red,ItemID.RedAcidDye);
 			}
 		}
 
@@ -2182,7 +2275,7 @@ namespace ObamaCamera
 			orig(type,position,Style);
 		}
 		private static SoundEffectInstance OnPlaySound2(On.Terraria.Main.orig_PlaySound_LegacySoundStyle_Vector2 orig,LegacySoundStyle type, Vector2 position){
-			if (MyConfig.get.RoarShake && !Main.gameMenu && MyConfig.get.multipleSoundCheck) {
+			if (type != null && MyConfig.get.RoarShake && !Main.gameMenu && MyConfig.get.multipleSoundCheck) {
 				if (Vector2.Distance(position,Main.LocalPlayer.Center) < MyConfig.get.RoarShakeInt) {
 					SoundShake(type.SoundId,type.Style);
 				}
@@ -2200,7 +2293,7 @@ namespace ObamaCamera
 			return orig(location,color,text,dramatic,dot);
 		}
 		private static SoundEffectInstance OnPlaySound3(On.Terraria.Main.orig_PlaySound_LegacySoundStyle_int_int orig,LegacySoundStyle type, int x, int y){
-			if (MyConfig.get.RoarShake && !Main.gameMenu && MyConfig.get.multipleSoundCheck) {
+			if (type != null && MyConfig.get.RoarShake && !Main.gameMenu && MyConfig.get.multipleSoundCheck) {
 				if (Vector2.Distance(new Vector2(x,y),Main.LocalPlayer.Center) < MyConfig.get.RoarShakeInt) {
 					SoundShake(type.SoundId,type.Style);
 				}
@@ -2232,16 +2325,38 @@ namespace ObamaCamera
 			}
 			return build;
 		}
-		public static void KrinjDialog(string newText,Color color) {
-			string funni = "";
-			var snippetList = ChatManager.ParseMessage(newText,Color.White);
-			foreach (var i in snippetList){if (!i.TextOriginal.Contains("[i")) {funni += i.Text;}}
-			NPC npc = Main.npc[enemyAiRunned];
-			string build = Splitten(funni);
+		public static void KrinjDialogText(string funni,string owner,Color color,int dye = 0) {
+			string fart = "";
+			var snippetList = ChatManager.ParseMessage(funni,Color.White);
+			foreach (var i in snippetList){if (!i.TextOriginal.Contains("[i")) {fart += i.Text;}}
+			string build = Splitten(fart);
 			ObamaCamera.DisplayAwoken(build);
-			ObamaCamera.nameAwoken = npc.FullName;
+			ObamaCamera.nameAwoken = owner;
 			ObamaCamera.awokenColor = color;
-			ObamaCamera.useTypeWrite = true;
+			ObamaCamera.awokenDye = dye;
+			if (MyConfig.get.betterDialogTick > 0) {ObamaCamera.useTypeWrite = true;}
+		}
+		public static void KrinjDialog(string newText,Color color) {
+			if (enemyAiRunned == -1) {
+				Main.NewText("Index out of bounds detected, disabling 'Better modded boss dialog'",Color.Red);
+				MyConfig.get.betterDialog = false;
+				MyConfig.SaveConfig();
+				return;
+			}
+			NPC npc = Main.npc[enemyAiRunned];
+			KrinjDialogText(newText,npc.FullName,color,ClamDye(npc.type));
+		}
+		static int ClamDye(int type) {
+			Mod meme = ModLoader.GetMod("CalamityMod");
+			if (meme != null) {
+				if (type == meme.NPCType("SupremeCalamitas")) {
+					return ItemID.RedAcidDye;
+				}
+				if (type == meme.NPCType("Draedon")) {
+					return ItemID.BlueFlameDye;
+				}
+			}
+			return 0;
 		}
 		static void NewTextPatch(On.Terraria.Main.orig_NewText_string_byte_byte_byte_bool orig, string newText, byte R, byte G, byte B, bool force) {
 			if (MyConfig.get.TextToCombatText && enemyAiRunned == -1) {
