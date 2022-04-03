@@ -521,16 +521,17 @@ namespace ObamaCamera
 					subtitle = "The Land of Magical Being";
 					color = Color.Pink;
 				}
-				if (player.ZoneSnow && !biomeEncounter.Contains("Ice")) {
+				if (player.ZoneSnow && !player.ZoneCrimson && !player.ZoneCorrupt && !player.ZoneHoly && !biomeEncounter.Contains("Ice")) {
 					name = "Ice";
 					subtitle = "The Cold Land";
-					color = Color.Blue;
+					color = Color.Cyan;
 				}
 				if (player.ZoneMeteor && !biomeEncounter.Contains("Meteor")) {
 					name = "Meteor";
+					color = Color.LightOrange;
 					subtitle = "wtf happen here";
 				}
-				if (!player.ZoneBeach && !player.ZoneCorrupt&& !player.ZoneCrimson && player.ZoneDesert && !biomeEncounter.Contains("Desert")) {
+				if (!player.ZoneBeach && !player.ZoneCorrupt && !player.ZoneHoly && !player.ZoneCrimson && player.ZoneDesert && !biomeEncounter.Contains("Desert")) {
 					name = "Desert";
 					subtitle = "The Deserted Land";
 					color = Color.Yellow;
