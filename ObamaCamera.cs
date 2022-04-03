@@ -528,7 +528,7 @@ namespace ObamaCamera
 				}
 				if (player.ZoneMeteor && !biomeEncounter.Contains("Meteor")) {
 					name = "Meteor";
-					color = Color.LightOrange;
+					color = Color.Pink;
 					subtitle = "wtf happen here";
 				}
 				if (!player.ZoneBeach && !player.ZoneCorrupt && !player.ZoneHoly && !player.ZoneCrimson && player.ZoneDesert && !biomeEncounter.Contains("Desert")) {
