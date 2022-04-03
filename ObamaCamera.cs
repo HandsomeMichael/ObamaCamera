@@ -269,7 +269,7 @@ namespace ObamaCamera
 						save = false;
 					}
 				}
-				ObamaCamera.ILEditReplacement.BossCheckModify(npc.type,ref save);
+				ObamaCamera.ILEditReplacement.BossCheckModify(npc.type,ref name,ref subtitle,ref save);
 				if (save){ObamaCamera.bossEncounter.Add(npc.type);}
 				if (ObamaCamera.titleData != null && ObamaCamera.titleData.Count > 0) {
 					foreach (var item in ObamaCamera.titleData)
@@ -284,6 +284,8 @@ namespace ObamaCamera
 					}
 				}
 				ObamaCamera.Title(name,subtitle,texture);
+				ObamaCamera.titleTimerMax = MyConfig.get.BossIntroTime;
+				ObamaCamera.titleTimer = ObamaCamera.titleTimerMax;
 			}
 			if (MyConfig.get.DeathAnim && npc.type == NPCID.MoonLordCore && npc.ai[0] == 2f && npc.ai[0] > 0f && npc.active) {
 				ObamaCamera.Moonlord = true;
@@ -490,7 +492,7 @@ namespace ObamaCamera
 		bool saytheline;
 		public static string curSubworld = "";
 		public override void PostUpdate() {
-			if (config.NewBiome && ObamaCamera.titleTimer < 1) {
+			if (config.NewBiome && (ObamaCamera.titleTimer < 1 || player.whoAmI != Main.myPlayer)) {
 				string name = "";
 				string subtitle = "";
 				Color color = Color.White;
@@ -638,8 +640,7 @@ namespace ObamaCamera
 					}
 				}
 				if (ObamaCamera.biomeList != null && ObamaCamera.biomeList.Count > 0) {
-					foreach (var item in ObamaCamera.biomeList)
-					{
+					foreach (var item in ObamaCamera.biomeList){
 						if (item.biome() && !biomeEncounter.Contains(item.text)) {
 							name = item.text;
 							subtitle = item.subtext;
@@ -650,15 +651,14 @@ namespace ObamaCamera
 				if (name != "") {
 					string hex = "[c/"+color.Hex3()+":";
 					string text = player.name+$" has Discovered "+hex+name+" Biome]";
-					if (Main.netMode == 0){
-						Main.NewText(text,Color.LightYellow);
-					}
-					else if (Main.netMode == 2) {
-						NetMessage.BroadcastChatMessage(NetworkText.FromKey(text), Color.LightYellow);
-					}
+					Main.NewText(text,Color.LightYellow);
+					//if (Main.netMode == 0){Main.NewText(text,Color.LightYellow);}
+					//else if (Main.netMode == 2) {NetMessage.BroadcastChatMessage(NetworkText.FromKey(text), Color.LightYellow);}
 					biomeEncounter.Add(name);
-					ObamaCamera.Title(name,subtitle);
-					ObamaCamera.titleColor = color;
+					if (player.whoAmI == Main.myPlayer) {
+						ObamaCamera.Title(name,subtitle);
+						ObamaCamera.titleColor = color;
+					}
 				}
 			}
 			if (config.AhShit) {
@@ -925,7 +925,7 @@ namespace ObamaCamera
 		public void Add(Func<int> func) => indexModifier.Add(func);
 		public void Add(Func<string> func) => typeModifier.Add(func);
 		public void Add(Func<int> func1,Func<bool> func2) => loopModifier.Add(new KeyValuePair<Func<int>,Func<bool>>(func1,func2));
-		public void BossCheckModify(int type, ref bool save) {
+		public void BossCheckModify(int type, ref string name,ref string subtitle,ref bool save) {
 			if (bossCheckModify != null && bossCheckModify.Count > 0) {
 				foreach (Func<int,bool?> item in bossCheckModify){
 					bool? flag = item(type);
@@ -1338,6 +1338,7 @@ namespace ObamaCamera
 			titleColor = Color.White;
 		}
 		public static int titleTimer;
+		public static int titleTimerMax;
 		public static Color titleColor;
 		static Texture2D title2D;
 		static string titleText;
@@ -1355,7 +1356,8 @@ namespace ObamaCamera
 
 		public static void Title(string text, string subtitle = "", Texture2D num = null) {
 			titleText = text;
-			titleTimer = 240;
+			titleTimerMax = 240;
+			titleTimer = titleTimerMax;
 			titleSubText = subtitle;
 			title2D = num;
 			titleColor = Color.White;
@@ -1366,6 +1368,7 @@ namespace ObamaCamera
 			awokenTime = 0;
 			awoken = "";
 			titleTimer = 0;
+			titleTimerMax = 0;
 			titleText = "";
 			titleSubText = "";
 			title2D = null;
@@ -1649,8 +1652,8 @@ namespace ObamaCamera
 				float max = 30f;
 				float num = titleTimer;
 				float alpha = 0f;
-				if (num > 210f) {
-					alpha = (num - 210f)/30f;
+				if (num > (titleTimerMax-max)) {
+					alpha = (num - (titleTimerMax-max))/max;
 					alpha = 1f - alpha;
 				}
 				else {
@@ -1918,9 +1921,18 @@ namespace ObamaCamera
 		public bool BossIntro;
 
 		[Label("Camera Boss Intro Multiple")]
-		[Tooltip("Make camera boss applies multiple times")]
+		[Tooltip("Make camera boss intro applies on multiple bosses\n at the same time")]
 		[DefaultValue(true)]
 		public bool BossIntroMult;
+
+		[Label("Camera Boss Intro Duration")]
+		[Tooltip("The Camera Boss Intro Duration\n[default to 120]")]
+		[Range(60, 480)]
+		[Increment(10)]
+		[DefaultValue(120)]
+		[DrawTicks]
+		[Slider] 
+		public int BossIntroTime;
 
 		[Label("Camera Follow Mouse")]
 		[Tooltip("Make the camera follow mouse \nlike Terraria overhaul mod")]
@@ -2027,7 +2039,7 @@ namespace ObamaCamera
 		public bool betterDialog;
 
 		[Label("modded boss dialog speed")]
-		[Tooltip("The speed of modded boss dialog, set to 0 for instant text\n [default is 2]")]
+		[Tooltip("The speed of modded boss dialog, set to 0 for instant text\n [default is 1]")]
 		[Range(0, 5)]
 		[Increment(1)]
 		[DefaultValue(1)]
@@ -2035,7 +2047,7 @@ namespace ObamaCamera
 		public int betterDialogTick;
 
 		[Label("Smolll modded boss dialog")]
-		[Tooltip("Make modded boss dialog")]
+		[Tooltip("Make modded boss dialog smaller")]
 		[DefaultValue(true)]
 		public bool betterDialogSmoll;
 
@@ -2070,7 +2082,7 @@ namespace ObamaCamera
 		public bool SubworldName;
 		
 		[Label("Biome Title")]
-		[Tooltip("Display biome name and the description when discovering a new biome\nsupports calamity biome !")]
+		[Tooltip("Display biome name and the description when discovering a new biome\nsupports calamity and thorium")]
 		[DefaultValue(true)]
 		public bool NewBiome;
 
@@ -2422,7 +2434,7 @@ namespace ObamaCamera
 			if (MyConfig.get.TextToCombatText && enemyAiRunned == -1) {
 				CombatText.NewText(Main.LocalPlayer.getRect(),new Color(R,G,B),newText);
 			}
-			if (MyConfig.get.betterDialog && enemyAiRunned != -1) {
+			if (MyConfig.get.betterDialog && enemyAiRunned != -1 && !(R == 175 && G == 75 && B == 255)) {
 				KrinjDialog(newText,new Color(R,G,B));
 				return;
 			}

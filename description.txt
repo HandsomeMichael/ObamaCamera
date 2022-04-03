@@ -43,6 +43,13 @@ Note 2 : Mod calls tutorial can be found at the github repo wiki
 
 [ Changelog ]
 
+v.0.8.9.5
+- added config to change boss intro duration
+- fixed some multiplayer incompability
+- fixed awoken messages appear on boss dialogs
+- fixed slain messages appear on boss dialogs
+- fixed camera scope always active
+
 v.0.8.9
 - added more mod calls
 - added config for offsetting boss dialog
